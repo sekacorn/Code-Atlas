@@ -56,8 +56,10 @@ concrete technical risks that later milestones must address.
   version, rule id, file hash, four-state resolution status) is **now introduced as
   `ResolutionStatus`** and surfaced in coverage, but is not yet attached to every
   entity/finding.
-- **Incremental scanning.** Change detection exists and is tested; the pipeline
-  still re-parses everything each run (no parse-result cache reuse yet).
+- ~~Incremental scanning.~~ **Now implemented:** persistent file-backed H2 default,
+  scan versioning with failed-scan protection, and conservative reuse of unchanged
+  parser results (see PERSISTENCE.md / INCREMENTAL_ANALYSIS.md). Remaining gap:
+  only the latest completed scan's model snapshot is retained.
 - **Dependency/lineage view.** Package coupling and a component-level "data flow &
   consumers" report exist; true data lineage (source→transform→store→consumer with
   per-edge evidence) is **not** implemented.
@@ -140,8 +142,8 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
    resolved edges as ground truth.
 3. **Incomplete lineage.** No data-source/sink/store modelling yet; the "data flow"
    report is component-coupling only.
-4. **Storage default.** In-memory H2 is the default even for real runs; nothing is
-   durable across invocations unless `--index` is passed.
+4. ✅ **Storage default — RESOLVED.** The CLI defaults to a file-backed index with
+   scan records; a failed scan never replaces the last completed snapshot.
 5. **Missing evidence richness.** No parser/rule versioning or file-hash provenance
    attached to findings yet.
 6. **Build-context blindness.** Build files are not parsed, so dead-code and
@@ -161,7 +163,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 
 1. ✅ **Analysis-coverage reporting + `ResolutionStatus`** (honest uncertainty). _Done._
 2. ✅ **Stable identifiers + Ada spec/body merge** (resolved risk #1). _Done._
-3. **Persistent file-backed H2 default** + scan versioning (risk #4).
-4. **Evidence enrichment** (parser id/version, rule id, file hash) on findings.
-5. **Java data-lineage vertical slice** (controller→service→repo→table).
+3. ✅ **Persistent file-backed H2 default + scan versioning + parse reuse** (resolved risk #4). _Done._
+4. **Java data-lineage vertical slice** (endpoint→controller→service→mapper→repo→table).
+5. **Evidence enrichment** on remaining findings (rule ids beyond lineage).
 6. **Read-only agent tool API**, then the Orientation and Lineage agents.

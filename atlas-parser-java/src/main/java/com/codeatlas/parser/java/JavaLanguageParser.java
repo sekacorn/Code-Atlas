@@ -72,6 +72,11 @@ public final class JavaLanguageParser implements RepositoryParser {
     }
 
     @Override
+    public String parserVersion() {
+        return "1.0.0";
+    }
+
+    @Override
     public boolean supports(ParseRequest request) {
         return "java".equals(request.extension());
     }

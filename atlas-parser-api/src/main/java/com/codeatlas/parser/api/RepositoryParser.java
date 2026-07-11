@@ -28,8 +28,21 @@ public interface RepositoryParser {
     String displayName();
 
     /**
+     * Version of this parser's extraction logic. Cached parse results are keyed by
+     * (content hash, parser id, parser version), so bump this whenever extraction
+     * changes — otherwise stale cached facts may be reused on unchanged files.
+     */
+    default String parserVersion() {
+        return "1";
+    }
+
+    /**
      * Whether this parser can handle the given file. Typically an extension check,
      * but may inspect content for ambiguous formats.
+     *
+     * <p>Must not rely on {@link ParseRequest#content()}: the pipeline probes
+     * parsers with an empty-content request to decide cache reuse before reading
+     * the file.
      */
     boolean supports(ParseRequest request);
 

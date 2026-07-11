@@ -31,8 +31,13 @@ public final class ScanCommand implements Callable<Integer> {
     @Option(names = {"-o", "--out"}, description = "Output directory for reports (default: ./atlas-report).")
     private Path outputDir = Path.of("atlas-report");
 
-    @Option(names = {"--index"}, description = "Path to a persistent H2 index (default: in-memory).")
+    @Option(names = {"--index"}, description = "Path to the persistent H2 index "
+            + "(default: ~/.code-atlas/index/<repo>-<hash>/atlas).")
     private Path indexPath;
+
+    @Option(names = {"--in-memory"}, description = "Use a transient in-memory index (explicit temporary session; "
+            + "nothing persists across runs).")
+    private boolean inMemory;
 
     @Option(names = {"--complexity-threshold"}, description = "Cyclomatic complexity threshold (default: 10).")
     private int complexityThreshold = 10;
@@ -54,14 +59,28 @@ public final class ScanCommand implements Callable<Integer> {
         if (threads > 0) {
             scan.threads(threads);
         }
+        // Persistent file-backed storage is the default; in-memory only on request.
+        Path effectiveIndex = null;
+        if (!inMemory) {
+            effectiveIndex = indexPath != null ? indexPath : IndexLocations.defaultIndexFor(repository);
+            try {
+                java.nio.file.Files.createDirectories(effectiveIndex.toAbsolutePath().getParent());
+            } catch (java.io.IOException e) {
+                System.err.println("Cannot create index directory: " + e.getMessage());
+                return 2;
+            }
+        }
         PipelineConfig config = PipelineConfig.builder()
                 .scanOptions(scan.build())
                 .complexityThreshold(complexityThreshold)
                 .deadCodeMinConfidence(minConfidence)
-                .indexPath(indexPath)
+                .indexPath(effectiveIndex)
                 .build();
 
         System.out.println("Scanning " + repository.toAbsolutePath() + " ...");
+        System.out.println(effectiveIndex != null
+                ? "Index: " + effectiveIndex.toAbsolutePath()
+                : "Index: in-memory (temporary session)");
         PipelineResult result = CodeAtlasPipeline.withDiscoveredParsers().run(repository, config);
 
         printSummary(result);
@@ -102,9 +121,11 @@ public final class ScanCommand implements Callable<Integer> {
         System.out.printf("  Dead-code candidates  %,d (%d%% of units)%n", a.deadCode().size(), a.deadCodePercent());
         System.out.println(bar);
         var cov = result.coverage();
+        System.out.printf("  Scan id ............. %s%n", result.scanId());
         System.out.println("  Coverage:");
-        System.out.printf("    Files analyzed .... %,d / %,d  (%,d skipped, %,d failed)%n",
-                cov.filesAnalyzed(), cov.filesDiscovered(), cov.filesSkipped(), cov.filesFailed());
+        System.out.printf("    Files analyzed .... %,d / %,d  (%,d skipped, %,d failed, %,d reused from cache)%n",
+                cov.filesAnalyzed(), cov.filesDiscovered(), cov.filesSkipped(), cov.filesFailed(),
+                cov.filesReused());
         System.out.printf("    References resolved %d%%  (%,d resolved, %,d unresolved, %,d ambiguous)%n",
                 cov.resolutionRatePercent(), cov.referencesResolved(),
                 cov.referencesUnresolved(), cov.referencesAmbiguous());

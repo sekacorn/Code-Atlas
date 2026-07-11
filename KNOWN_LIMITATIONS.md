@@ -55,10 +55,14 @@ expectations. It is updated as limitations are addressed.
 
 ## Storage & performance
 
-- The index defaults to **in-memory H2**; nothing persists across runs unless
-  `--index <path>` is supplied. File-backed default and scan versioning are planned.
-- Every file is re-parsed each run (no parse-result cache reuse yet), and the whole
-  model is held in memory. Fine at current scale; revisit for very large repos.
+- The CLI now defaults to a **file-backed H2 index** under `~/.code-atlas/index/`
+  with scan versioning and conservative parse-result reuse (see
+  [PERSISTENCE.md](PERSISTENCE.md) and [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md)).
+  Remaining limitations: only the **latest completed scan's model snapshot** is
+  retained (older scans keep metadata only, so cross-scan model diffing is not yet
+  possible); the model is re-merged in memory each scan (reuse avoids re-parsing,
+  not re-merging); and entity locations persisted in the model snapshot drop
+  column numbers (the parse cache keeps them).
 
 ## Not provided
 

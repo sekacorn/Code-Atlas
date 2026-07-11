@@ -33,7 +33,8 @@ public final class HtmlReporter {
           .append(esc(data.repositoryName())).append(" · generated ")
           .append(esc(data.generatedAt().atZone(java.time.ZoneId.systemDefault())
                   .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))))
-          .append(" · scanned in ").append(data.scanDurationMillis()).append(" ms</div></header>");
+          .append(" · scanned in ").append(data.scanDurationMillis()).append(" ms · ")
+          .append(esc(data.scanId())).append("</div></header>");
 
         sb.append("<main>");
         coverageBanner(sb, data.coverage());
@@ -72,6 +73,7 @@ public final class HtmlReporter {
         covRow(sb, "Files skipped (no parser)", format(c.filesSkipped()));
         covRow(sb, "Files failed", format(c.filesFailed()));
         covRow(sb, "Files unreadable", format(c.filesUnreadable()));
+        covRow(sb, "Files reused from cache", format(c.filesReused()));
         covRow(sb, "Unsupported file types", format(c.unsupportedFileTypes()));
         covRow(sb, "References resolved", format(c.referencesResolved()));
         covRow(sb, "References unresolved", format(c.referencesUnresolved()));

@@ -14,6 +14,9 @@ package com.codeatlas.analysis;
  * @param filesSkipped         files with no parser for their type
  * @param filesFailed          files a parser attempted but reported errors on
  * @param filesUnreadable      files that could not be read as text (e.g. binary)
+ * @param filesReused          files whose facts were reused from the parse cache
+ *                             (unchanged content, same parser version); counted in
+ *                             the other buckets by their original outcome
  * @param unsupportedFileTypes distinct file extensions that had no parser
  * @param referencesResolved   cross-references linked to a concrete target
  * @param referencesUnresolved cross-references whose target was not found
@@ -24,6 +27,7 @@ public record AnalysisCoverage(int filesDiscovered,
                                int filesSkipped,
                                int filesFailed,
                                int filesUnreadable,
+                               int filesReused,
                                int unsupportedFileTypes,
                                int referencesResolved,
                                int referencesUnresolved,

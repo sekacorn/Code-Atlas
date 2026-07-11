@@ -79,6 +79,11 @@ public final class AdaLanguageParser implements RepositoryParser {
     }
 
     @Override
+    public String parserVersion() {
+        return "1.0.0";
+    }
+
+    @Override
     public boolean supports(ParseRequest request) {
         String ext = request.extension();
         return ext.equals("ads") || ext.equals("adb") || ext.equals("ada");

@@ -20,6 +20,7 @@ public final class JsonReporter {
         sb.append("{\n");
         sb.append("  \"repository\": ").append(Json.quote(data.repositoryName())).append(",\n");
         sb.append("  \"generatedAt\": ").append(Json.quote(data.generatedAt().toString())).append(",\n");
+        sb.append("  \"scanId\": ").append(Json.quote(data.scanId())).append(",\n");
         sb.append("  \"scanStatus\": ").append(Json.quote(data.coverage().isPartial() ? "PARTIAL" : "COMPLETE")).append(",\n");
         sb.append("  \"coverage\": ").append(coverage(data.coverage())).append(",\n");
 
@@ -48,6 +49,7 @@ public final class JsonReporter {
                 + ", \"filesSkipped\": " + c.filesSkipped()
                 + ", \"filesFailed\": " + c.filesFailed()
                 + ", \"filesUnreadable\": " + c.filesUnreadable()
+                + ", \"filesReused\": " + c.filesReused()
                 + ", \"unsupportedFileTypes\": " + c.unsupportedFileTypes()
                 + ", \"referencesResolved\": " + c.referencesResolved()
                 + ", \"referencesUnresolved\": " + c.referencesUnresolved()
