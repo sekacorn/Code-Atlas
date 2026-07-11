@@ -128,20 +128,20 @@ public final class AdaLanguageParser implements RepositoryParser {
             }
 
             if ((m = PACKAGE.matcher(line)).find()) {
-                openPackage(out, scopes, fileEntity, m.group(3), file, lineNo);
+                openPackage(out, scopes, fileEntity, m.group(3), file, lineNo, isBody);
                 continue;
             }
 
             if ((m = PROCEDURE.matcher(line)).find()) {
                 openSubprogram(out, scopes, fileEntity, EntityKind.PROCEDURE, m.group(2), line, isBody,
-                        file, lineNo, contractsFrom(lines, i));
+                        file, lineNo, contractsFrom(lines, i), signatureProfile(lines, i));
                 continue;
             }
 
             Matcher fm = FUNCTION.matcher(line);
             if (fm.find()) {
                 openSubprogram(out, scopes, fileEntity, EntityKind.FUNCTION, fm.group(2), line, isBody,
-                        file, lineNo, contractsFrom(lines, i));
+                        file, lineNo, contractsFrom(lines, i), signatureProfile(lines, i));
                 continue;
             }
 
@@ -195,6 +195,7 @@ public final class AdaLanguageParser implements RepositoryParser {
         final int startLine;
         int complexity = 1;
         boolean exposed = true; // packages are visible; body-local subprograms are not
+        String adaPart = "spec"; // spec | body — which unit this declaration came from
         String pre;
         String post;
 
@@ -212,13 +213,15 @@ public final class AdaLanguageParser implements RepositoryParser {
     }
 
     private void openPackage(ParseResult.Builder out, Deque<Scope> scopes, Entity file,
-                             String name, String path, int lineNo) {
+                             String name, String path, int lineNo, boolean isBody) {
         Scope parent = scopes.peek();
         String qn = parent != null && parent.kind == EntityKind.PACKAGE
                 ? parent.qualifiedName + "." + name : name;
-        SourceLocation loc = new SourceLocation(path, lineNo, lineNo, 0, 0);
-        String id = Entity.idFor(EntityKind.PACKAGE, qn, loc);
-        scopes.push(new Scope(EntityKind.PACKAGE, name, qn, id, lineNo));
+        // Identity is location-independent: a package spec and body share one id.
+        String id = Entity.stableId(LANGUAGE, EntityKind.PACKAGE, qn);
+        Scope scope = new Scope(EntityKind.PACKAGE, name, qn, id, lineNo);
+        scope.adaPart = isBody ? "body" : "spec";
+        scopes.push(scope);
         // containment recorded at finalize (need endLine); record parent edge now.
         String containerId = parent != null ? parent.id : file.id();
         out.relationship(Relationship.builder(RelationshipKind.CONTAINS, containerId, id).build());
@@ -226,11 +229,13 @@ public final class AdaLanguageParser implements RepositoryParser {
 
     private void openSubprogram(ParseResult.Builder out, Deque<Scope> scopes, Entity file,
                                 EntityKind kind, String name, String line, boolean isBody,
-                                String path, int lineNo, Contracts contracts) {
+                                String path, int lineNo, Contracts contracts, String profile) {
         Scope parent = scopes.peek();
-        String qn = (parent != null ? parent.qualifiedName + "." : "") + name;
+        // The normalized parameter profile is part of the identity so overloads stay
+        // distinct while a spec and its body (identical profile) share one identity.
+        String qn = (parent != null ? parent.qualifiedName + "." : "") + name + profile;
         SourceLocation loc = new SourceLocation(path, lineNo, lineNo, 0, 0);
-        String id = Entity.idFor(kind, qn, loc);
+        String id = Entity.stableId(LANGUAGE, kind, qn);
         String containerId = parent != null ? parent.id : file.id();
         out.relationship(Relationship.builder(RelationshipKind.CONTAINS, containerId, id).build());
 
@@ -240,6 +245,7 @@ public final class AdaLanguageParser implements RepositoryParser {
             // A subprogram defined in a package body (no matching spec seen) is a
             // body-local helper: not externally exposed, so uncalled ones can surface.
             scope.exposed = false;
+            scope.adaPart = "body";
             scope.pre = contracts.pre();
             scope.post = contracts.post();
             scopes.push(scope);
@@ -248,8 +254,27 @@ public final class AdaLanguageParser implements RepositoryParser {
             Entity.Builder b = Entity.builder(kind, name).id(id).qualifiedName(qn).language(LANGUAGE)
                     .location(loc)
                     .attribute(Entity.Attributes.EXTERNALLY_EXPOSED, parent == null || parent.kind == EntityKind.PACKAGE);
+            applyPart(b, "spec", loc);
             applyContracts(b, contracts);
             out.entity(b.build());
+        }
+    }
+
+    /**
+     * Records which Ada unit a declaration came from (spec/body) plus its location,
+     * so a spec-only or body-only entity honestly reports its evidence even before
+     * (or without) a merge, and merges simply OR the flags together.
+     */
+    private static void applyPart(Entity.Builder b, String part, SourceLocation loc) {
+        b.attribute(Entity.Attributes.ADA_PART, part);
+        if ("spec".equals(part)) {
+            b.attribute(Entity.Attributes.HAS_SPEC, true);
+            b.attribute(Entity.Attributes.HAS_BODY, false);
+            b.attribute(Entity.Attributes.SPEC_LOCATION, loc.toString());
+        } else {
+            b.attribute(Entity.Attributes.HAS_BODY, true);
+            b.attribute(Entity.Attributes.HAS_SPEC, false);
+            b.attribute(Entity.Attributes.BODY_LOCATION, loc.toString());
         }
     }
 
@@ -318,6 +343,7 @@ public final class AdaLanguageParser implements RepositoryParser {
                 .qualifiedName(scope.qualifiedName).language(LANGUAGE).location(loc)
                 .attribute(Entity.Attributes.LINES_OF_CODE, loc.lineSpan())
                 .attribute(Entity.Attributes.EXTERNALLY_EXPOSED, scope.exposed);
+        applyPart(b, scope.adaPart, loc);
         if (scope.isSubprogram()) {
             b.attribute(Entity.Attributes.CYCLOMATIC_COMPLEXITY, scope.complexity);
         }
@@ -355,6 +381,142 @@ public final class AdaLanguageParser implements RepositoryParser {
         Matcher pre = SPARK_PRE.matcher(text);
         Matcher post = SPARK_POST.matcher(text);
         return new Contracts(pre.find() ? pre.group(1) : null, post.find() ? post.group(1) : null);
+    }
+
+    private static final Set<String> PARAM_MODES = Set.of("in", "out", "aliased", "constant");
+
+    /**
+     * Extracts a normalized parameter profile such as {@code (Integer)} or
+     * {@code (Integer,Float)} from a subprogram declaration, or {@code ""} when it
+     * has no parameters. This is what distinguishes overloaded subprograms while
+     * keeping a specification and its body (identical profiles) as one identity.
+     *
+     * <p>Types are normalized to their source spelling with modes ({@code in},
+     * {@code out}, {@code aliased}, {@code constant}) and defaults stripped and
+     * whitespace collapsed. Full type resolution is out of scope (see
+     * KNOWN_LIMITATIONS.md), so the profile is deterministic but not fully qualified.
+     */
+    private static String signatureProfile(String[] lines, int index) {
+        String decl = joinDeclaration(lines, index);
+        int open = decl.indexOf('(');
+        if (open < 0) {
+            return "";
+        }
+        int depth = 0;
+        int close = -1;
+        for (int p = open; p < decl.length(); p++) {
+            char c = decl.charAt(p);
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                if (--depth == 0) {
+                    close = p;
+                    break;
+                }
+            }
+        }
+        if (close < 0) {
+            return "";
+        }
+        return normalizeProfile(decl.substring(open + 1, close));
+    }
+
+    /** Joins the declaration text up to (but not into) its {@code is} or {@code ;}. */
+    private static String joinDeclaration(String[] lines, int index) {
+        StringBuilder buf = new StringBuilder();
+        for (int j = index; j < lines.length && j < index + 12; j++) {
+            buf.append(AdaLexUtil.strip(lines[j])).append(' ');
+        }
+        String s = buf.toString();
+        StringBuilder out = new StringBuilder();
+        int depth = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+            }
+            if (depth == 0 && c == ';') {
+                break;
+            }
+            if (depth == 0 && isWordAt(s, i, "is")) {
+                break;
+            }
+            out.append(c);
+        }
+        return out.toString();
+    }
+
+    private static boolean isWordAt(String s, int i, String word) {
+        if (!s.regionMatches(true, i, word, 0, word.length())) {
+            return false;
+        }
+        boolean beforeOk = i == 0 || !Character.isLetterOrDigit(s.charAt(i - 1));
+        int after = i + word.length();
+        boolean afterOk = after >= s.length() || !Character.isLetterOrDigit(s.charAt(after));
+        return beforeOk && afterOk;
+    }
+
+    private static String normalizeProfile(String params) {
+        if (params.isBlank()) {
+            return "";
+        }
+        StringBuilder profile = new StringBuilder("(");
+        boolean first = true;
+        int depth = 0;
+        int start = 0;
+        // Split parameter declarations on top-level ';'.
+        for (int i = 0; i <= params.length(); i++) {
+            char c = i < params.length() ? params.charAt(i) : ';';
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+            }
+            if (depth == 0 && (c == ';' || i == params.length())) {
+                String decl = params.substring(start, i);
+                start = i + 1;
+                int colon = decl.indexOf(':');
+                if (colon < 0) {
+                    continue;
+                }
+                int names = 1;
+                for (char nc : decl.substring(0, colon).toCharArray()) {
+                    if (nc == ',') {
+                        names++;
+                    }
+                }
+                String type = cleanType(decl.substring(colon + 1));
+                if (type.isEmpty()) {
+                    continue;
+                }
+                for (int n = 0; n < names; n++) {
+                    if (!first) {
+                        profile.append(',');
+                    }
+                    profile.append(type);
+                    first = false;
+                }
+            }
+        }
+        return first ? "" : profile.append(')').toString();
+    }
+
+    private static String cleanType(String raw) {
+        // Drop any default value, collapse whitespace, strip leading parameter modes.
+        String t = raw.split(":=")[0].trim().replaceAll("\\s+", " ");
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (String mode : PARAM_MODES) {
+                if (isWordAt(t, 0, mode) && t.length() > mode.length()) {
+                    t = t.substring(mode.length()).trim();
+                    changed = true;
+                }
+            }
+        }
+        return t;
     }
 
     private void accumulateDecision(Deque<Scope> scopes, String line) {

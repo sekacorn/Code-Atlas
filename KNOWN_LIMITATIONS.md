@@ -16,10 +16,15 @@ expectations. It is updated as limitations are addressed.
 
 ## Identifiers
 
-- Entity ids currently embed the source location, so they are **not stable** across
-  edits that shift line numbers. This also causes Ada spec/body declarations to
-  appear as separate entities (inflating package/subprogram counts). Stable,
-  location-independent identifiers are the next planned milestone.
+- Entity ids are deterministic and **location-independent** (they survive line
+  movement and rescans), and Ada spec/body declarations merge into one entity.
+  Residual limitations: parameter types in ids are **source-spelled**, not
+  fully-qualified (no classpath symbol solver), so `String` and
+  `java.lang.String` would yield different ids; Ada **return-type-only overloads**
+  are not distinguished; and the `PROJECT` id is the repository folder name (a
+  label, not a cross-machine-stable identity). Duplicate qualified names across
+  files are reported as `STABLE_ID_COLLISION` diagnostics rather than resolved.
+  See [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md).
 
 ## Language coverage
 

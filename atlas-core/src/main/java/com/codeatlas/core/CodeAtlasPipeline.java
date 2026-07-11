@@ -80,10 +80,12 @@ public final class CodeAtlasPipeline {
         CoverageAccumulator cov = new CoverageAccumulator();
         scan.files().parallelStream().forEach(f -> processFile(f, model, cov));
 
-        // PROJECT root + physical containment of every file.
-        Entity project = Entity.builder(EntityKind.PROJECT, repositoryRoot.getFileName() != null
-                        ? repositoryRoot.getFileName().toString() : repositoryRoot.toString())
-                .qualifiedName(repositoryRoot.toString())
+        // PROJECT root + physical containment of every file. Its identity is the
+        // repository name (never the absolute path, which is machine-specific).
+        String projectName = repositoryRoot.getFileName() != null
+                ? repositoryRoot.getFileName().toString() : repositoryRoot.toString();
+        Entity project = Entity.builder(EntityKind.PROJECT, projectName)
+                .qualifiedName(projectName)
                 .language("n/a")
                 .build();
         model.addEntity(project);

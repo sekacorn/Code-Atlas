@@ -213,7 +213,7 @@ public final class JavaLanguageParser implements RepositoryParser {
     private void processCallable(CallableDeclaration<?> callable, Entity owner, String ownerQn,
                                  Context ctx, EntityKind kind) {
         String params = callable.getParameters().stream()
-                .map(p -> p.getType().asString())
+                .map(p -> p.getType().asString().replaceAll("\\s+", ""))
                 .collect(Collectors.joining(","));
         String signature = callable.getNameAsString() + "(" + params + ")";
         String qn = ownerQn + "#" + signature;

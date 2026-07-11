@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -22,23 +24,96 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class SoftwareModel {
 
+    // Entity kinds that legitimately aggregate across files (packages span files;
+    // FILE/PROJECT are re-added with enriched attributes).
+    private static final Set<EntityKind> AGGREGATING =
+            EnumSet.of(EntityKind.FILE, EntityKind.PROJECT, EntityKind.PACKAGE, EntityKind.NAMESPACE);
+
     private final Map<String, Entity> entities = new ConcurrentHashMap<>();
     private final List<Relationship> relationships = Collections.synchronizedList(new ArrayList<>());
+    private final List<Diagnostic> diagnostics = Collections.synchronizedList(new ArrayList<>());
 
     // Lazily built adjacency indexes; null means "stale, rebuild on next read".
     private volatile Map<String, List<Relationship>> outgoing;
     private volatile Map<String, List<Relationship>> incoming;
 
+    /**
+     * Adds an entity, merging it into any existing entity that shares its stable id.
+     * Legitimate merges (package aggregation, Ada spec/body, idempotent re-adds)
+     * combine attributes and evidence; a genuine collision between two distinct
+     * declarations is recorded as a {@link Diagnostic} and never silently overwritten.
+     */
     public void addEntity(Entity entity) {
-        entities.put(entity.id(), entity);
+        entities.compute(entity.id(), (id, existing) -> {
+            if (existing == null) {
+                return entity;
+            }
+            if (isMergeable(existing, entity)) {
+                return Entity.merge(existing, entity);
+            }
+            diagnostics.add(new Diagnostic(Diagnostic.STABLE_ID_COLLISION,
+                    "Two distinct declarations share id '" + id + "': "
+                            + locationOf(existing) + " and " + locationOf(entity)
+                            + " (kept the first; both retained as evidence)"));
+            return existing;
+        });
         invalidateIndexes();
     }
 
     public void addEntities(Collection<Entity> toAdd) {
         for (Entity e : toAdd) {
-            entities.put(e.id(), e);
+            addEntity(e);
         }
-        invalidateIndexes();
+    }
+
+    /**
+     * Decides whether two entities sharing a stable id are the same logical entity
+     * (mergeable) rather than an accidental collision between distinct declarations.
+     */
+    private static boolean isMergeable(Entity a, Entity b) {
+        if (a.kind() != b.kind()) {
+            return false;
+        }
+        if (AGGREGATING.contains(a.kind())) {
+            return true;
+        }
+        if (sameDeclarationSite(a, b)) {
+            return true; // idempotent re-add of the same declaration
+        }
+        // Ada specification/body pair: same id, opposite parts.
+        String pa = a.attributes().get(Entity.Attributes.ADA_PART);
+        String pb = b.attributes().get(Entity.Attributes.ADA_PART);
+        if (pb != null) {
+            if (pa != null && !pa.equals(pb)) {
+                return true;
+            }
+            // existing may already carry the complementary part from an earlier merge
+            boolean needSpec = pb.equals("spec") && !a.boolAttribute(Entity.Attributes.HAS_SPEC, false);
+            boolean needBody = pb.equals("body") && !a.boolAttribute(Entity.Attributes.HAS_BODY, false);
+            if ((needSpec || needBody) && (a.boolAttribute(Entity.Attributes.HAS_SPEC, false)
+                    || a.boolAttribute(Entity.Attributes.HAS_BODY, false))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean sameDeclarationSite(Entity a, Entity b) {
+        var la = a.location();
+        var lb = b.location();
+        return la.isPresent() && lb.isPresent()
+                && la.get().filePath().equals(lb.get().filePath())
+                && la.get().startLine() == lb.get().startLine();
+    }
+
+    private static String locationOf(Entity e) {
+        return e.location().map(SourceLocation::toString).orElse("unknown");
+    }
+
+    public List<Diagnostic> diagnostics() {
+        synchronized (diagnostics) {
+            return List.copyOf(diagnostics);
+        }
     }
 
     public void addRelationship(Relationship relationship) {

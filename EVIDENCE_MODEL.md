@@ -25,6 +25,18 @@ Additional provenance already captured:
   incremental change detection.
 - **Parser id** on each `ParseResult` (`parserId()`), identifying which parser
   produced an extraction.
+- **Ada spec/body evidence**: a merged Ada entity retains both declaration sites
+  via `hasSpec`/`hasBody`/`specLocation`/`bodyLocation` (see
+  [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md)).
+
+## Identity vs. evidence
+
+An entity's **identity** is its stable id — deterministic and location-independent
+(`java:method:com.example.Service#find(String)`). Its **evidence** is the source
+location(s) that back it. Identity never depends on location, so evidence can move
+(and a spec/body pair can contribute two locations) without changing identity. The
+stable id is authoritative for external references and is exposed on findings in the
+JSON and CSV reports.
 
 ## Resolution status
 

@@ -9,9 +9,10 @@ import java.util.Optional;
 /**
  * A single discovered artifact in the software model.
  *
- * <p>Every entity carries a stable {@link #id()} so relationships can reference it
- * across parsers and across incremental runs. Ids are deterministic (see
- * {@link #idFor}) so re-scanning an unchanged file yields the same graph.
+ * <p>Every entity carries a deterministic, <em>location-independent</em> stable
+ * {@link #id()} (see {@link #stableId(String, EntityKind, String)}) so relationships
+ * can reference it across parsers, across incremental runs, and after lines move.
+ * The {@link #location()} is retained as evidence but does not define identity.
  *
  * <p>Free-form {@link #attributes()} hold parser- and analysis-supplied facts
  * (lines of code, cyclomatic complexity, visibility, "externally exposed" flags,
@@ -33,6 +34,13 @@ public final class Entity {
         public static final String DOC = "doc";
         public static final String FILE_HASH = "fileHash";
         public static final String LANGUAGE_FEATURE = "languageFeature"; // e.g. spark-contract, generic
+
+        // Ada spec/body merge evidence.
+        public static final String ADA_PART = "adaPart";          // spec | body
+        public static final String HAS_SPEC = "hasSpec";          // true when a specification was seen
+        public static final String HAS_BODY = "hasBody";          // true when a body was seen
+        public static final String SPEC_LOCATION = "specLocation"; // "file:line" of the specification
+        public static final String BODY_LOCATION = "bodyLocation"; // "file:line" of the body
 
         private Attributes() {
         }
@@ -57,20 +65,63 @@ public final class Entity {
     }
 
     /**
-     * Builds a deterministic id from kind + qualified name, disambiguated by
-     * location when present. Two runs over identical source produce identical ids.
+     * Builds a deterministic, location-independent stable identifier from the
+     * entity's language, kind and qualified name. The grammar is
+     * {@code <lang>:<kind-token>:<qualifiedName>}, with two special cases:
+     * files are {@code file:<relativePath>} and the project root is
+     * {@code project:<name>}. See {@code STABLE_IDENTIFIERS.md} for the full
+     * grammar and normalization rules.
+     *
+     * <p>Because it never includes a line, column, timestamp, database key or
+     * absolute path, the same declaration yields the same id across scans and after
+     * unrelated edits move it within its file.
      */
-    public static String idFor(EntityKind kind, String qualifiedName, SourceLocation location) {
-        StringBuilder sb = new StringBuilder(kind.name()).append(':').append(qualifiedName);
-        if (location != null && location.startLine() > 0) {
-            sb.append('@').append(location.filePath()).append('#').append(location.startLine());
-        } else if (location != null) {
-            sb.append('@').append(location.filePath());
+    public static String stableId(String language, EntityKind kind, String qualifiedName) {
+        if (kind == EntityKind.FILE) {
+            return "file:" + qualifiedName;
         }
-        return sb.toString();
+        if (kind == EntityKind.PROJECT) {
+            return "project:" + qualifiedName;
+        }
+        String lang = (language == null || language.isBlank()
+                || language.equals("unknown") || language.equals("n/a")) ? "code" : language;
+        return lang + ":" + kindToken(kind) + ":" + qualifiedName;
+    }
+
+    private static String kindToken(EntityKind kind) {
+        return switch (kind) {
+            case CLASS, INTERFACE, ENUM, RECORD, ANNOTATION, TYPE, PROTECTED_TYPE, GENERIC -> "type";
+            case METHOD -> "method";
+            case CONSTRUCTOR -> "constructor";
+            case FUNCTION -> "function";
+            case PROCEDURE -> "procedure";
+            case FIELD -> "field";
+            case VARIABLE -> "variable";
+            case PACKAGE -> "package";
+            case NAMESPACE -> "namespace";
+            case TASK -> "task";
+            case EXCEPTION -> "exception";
+            case MODULE -> "module";
+            case CONFIGURATION -> "config";
+            case DATABASE_OBJECT -> "db";
+            case ENDPOINT -> "endpoint";
+            case WORKFLOW -> "workflow";
+            case DEPENDENCY -> "dependency";
+            case FILE -> "file";
+            case PROJECT -> "project";
+        };
     }
 
     public String id() {
+        return id;
+    }
+
+    /**
+     * The authoritative, stable, location-independent identity for external
+     * references (reports, saved searches, suppressions, agent tool calls).
+     * Identical to {@link #id()}: the stable id <em>is</em> the entity's identity.
+     */
+    public String stableId() {
         return id;
     }
 
@@ -152,6 +203,74 @@ public final class Entity {
         return kind + " " + qualifiedName + (location != null ? " (" + location + ")" : "");
     }
 
+    /**
+     * Merges two entities that share a stable id into one, combining their
+     * attributes and evidence. The caller (the model) decides whether a merge is
+     * legitimate; this method only performs it.
+     *
+     * <p>Rules: exposure is OR-ed (visible anywhere → visible); complexity and LOC
+     * take the maximum; SPARK contracts and other descriptive attributes are kept
+     * from whichever declaration supplied them; and Ada {@code spec}/{@code body}
+     * parts are recorded as spec/body evidence (locations + has-spec/has-body). The
+     * specification is preferred as the canonical {@link #location()} when present.
+     */
+    public static Entity merge(Entity existing, Entity incoming) {
+        Builder b = existing.toBuilder();
+
+        for (Map.Entry<String, String> e : incoming.attributes().entrySet()) {
+            String key = e.getKey();
+            String value = e.getValue();
+            switch (key) {
+                case Attributes.EXTERNALLY_EXPOSED -> b.attribute(key,
+                        existing.boolAttribute(key, false) || Boolean.parseBoolean(value));
+                case Attributes.CYCLOMATIC_COMPLEXITY, Attributes.LINES_OF_CODE -> b.attribute(key,
+                        Math.max(existing.intAttribute(key, 0), parseIntOr(value, 0)));
+                default -> {
+                    if (existing.attribute(key).isEmpty()) {
+                        b.attribute(key, value);
+                    }
+                }
+            }
+        }
+
+        recordPartEvidence(b, existing);
+        recordPartEvidence(b, incoming);
+
+        // Prefer the specification as canonical evidence when the incoming part is a spec.
+        if ("spec".equals(incoming.attributes().get(Attributes.ADA_PART))) {
+            incoming.location().ifPresent(b::location);
+        }
+        return b.build();
+    }
+
+    /** Folds one declaration's Ada spec/body part into the merged evidence. */
+    private static void recordPartEvidence(Builder b, Entity part) {
+        String p = part.attributes().get(Attributes.ADA_PART);
+        if (p == null) {
+            return;
+        }
+        String loc = part.location().map(SourceLocation::toString).orElse(null);
+        if (p.equals("spec")) {
+            b.attribute(Attributes.HAS_SPEC, true);
+            if (loc != null) {
+                b.attribute(Attributes.SPEC_LOCATION, loc);
+            }
+        } else if (p.equals("body")) {
+            b.attribute(Attributes.HAS_BODY, true);
+            if (loc != null) {
+                b.attribute(Attributes.BODY_LOCATION, loc);
+            }
+        }
+    }
+
+    private static int parseIntOr(String s, int fallback) {
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (RuntimeException e) {
+            return fallback;
+        }
+    }
+
     public static final class Builder {
         private String id;
         private final EntityKind kind;
@@ -205,7 +324,7 @@ public final class Entity {
 
         public Entity build() {
             if (id == null) {
-                id = idFor(kind, qualifiedName != null ? qualifiedName : name, location);
+                id = stableId(language, kind, qualifiedName != null ? qualifiedName : name);
             }
             return new Entity(this);
         }

@@ -1,7 +1,8 @@
 # Code Atlas — Current-State Assessment
 
 _Assessment date: 2026-07-11. Reflects the repository as inspected, not the
-original prompt. Scope: Milestone 1 codebase plus the first addendum enhancement._
+original prompt. Scope: Milestone 1 codebase plus the analysis-coverage and
+stable-identifier addendum enhancements._
 
 This document is the factual baseline the enhancement addendum requires before any
 architectural change. It records what exists, how healthy the build is, and the
@@ -30,6 +31,14 @@ concrete technical risks that later milestones must address.
 - **Cross-reference linker** (`atlas-core`): resolves symbolic call/type targets
   after all files are parsed; conservative on ambiguity (caps candidates, keeps
   originals). Now returns **link statistics** (resolved / unresolved / ambiguous).
+- **Stable identifiers** (`atlas-model`): deterministic, location-independent ids
+  (`java:type:…`, `ada:function:…(Integer)`, `file:…`) that survive line movement
+  and rescans; exposed on findings in JSON/CSV. See [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md).
+- **Ada spec/body merge** (`atlas-model` + Ada parser): a package/subprogram's
+  `.ads` spec and `.adb` body share one identity, retaining both source evidences
+  (`hasSpec`/`hasBody`/`specLocation`/`bodyLocation`); overloads stay distinct.
+- **Collision diagnostics**: two distinct declarations that share an id are recorded
+  (never silently overwritten) and surfaced in the report and CLI.
 - **Analysis** (`atlas-analysis`): repository metrics, complexity hotspots with
   risk bands, dead-code detection with **evidence list + confidence (capped < 100%)**
   and exposed-name propagation, package coupling + circular-dependency detection.
@@ -61,7 +70,6 @@ concrete technical risks that later milestones must address.
 
 ## Missing (addendum requirements not yet implemented)
 
-- Stable, location-independent entity identifiers (`java:…`, `ada:…`, `sql:…`).
 - Data lineage as a first-class capability + Java/Ada lineage vertical slices.
 - Persistent file-backed H2 as the **default** for ordinary runs.
 - Config (XML/YAML/JSON/properties), database (SQL/DDL), build (`.gpr`, Maven/
@@ -120,13 +128,12 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 
 ## Technical risks
 
-1. **Unstable identifiers (highest-risk gap).** `Entity.idFor` embeds
-   `@file#line`, so an entity's id changes when lines shift. This breaks stable
-   references needed for incremental updates, saved searches, suppressions,
-   cross-scan comparison, and agent tool calls. It also causes **spec/body
-   duplication** in Ada (e.g. a package appears once per `.ads`/`.adb`), inflating
-   counts. _Mitigation (next milestone): language-prefixed, location-independent
-   ids with an entity-merge strategy for spec/body._
+1. ✅ **Unstable identifiers — RESOLVED.** Entities now use deterministic,
+   location-independent stable ids; Ada spec/body declarations merge into one
+   logical entity. Line movement and rescans no longer change identity (proven by
+   tests). Residual: parameter types are source-spelled (no symbol solver), so two
+   spellings of the same type produce different ids; and duplicate qualified names
+   across files are reported as collisions rather than resolved.
 2. **Incomplete symbol resolution.** Call/type resolution is name-based (no full
    classpath symbol solver), so cross-references are approximate. Handled honestly
    via the confidence model and the new coverage metric, but callers must not treat
@@ -152,9 +159,8 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 
 ## Recommended next steps (smallest-first)
 
-1. ✅ **This milestone:** analysis-coverage reporting + `ResolutionStatus`
-   vocabulary (honest uncertainty). _Done._
-2. **Stable identifiers** with spec/body entity merge (addresses risk #1).
+1. ✅ **Analysis-coverage reporting + `ResolutionStatus`** (honest uncertainty). _Done._
+2. ✅ **Stable identifiers + Ada spec/body merge** (resolved risk #1). _Done._
 3. **Persistent file-backed H2 default** + scan versioning (risk #4).
 4. **Evidence enrichment** (parser id/version, rule id, file hash) on findings.
 5. **Java data-lineage vertical slice** (controller→service→repo→table).

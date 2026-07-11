@@ -109,6 +109,10 @@ public final class ScanCommand implements Callable<Integer> {
                 cov.resolutionRatePercent(), cov.referencesResolved(),
                 cov.referencesUnresolved(), cov.referencesAmbiguous());
         System.out.printf("    Scan status ....... %s%n", cov.isPartial() ? "PARTIAL" : "COMPLETE");
+        var diagnostics = result.model().diagnostics();
+        if (!diagnostics.isEmpty()) {
+            System.out.printf("    Diagnostics ....... %,d (e.g. stable-id collisions)%n", diagnostics.size());
+        }
         System.out.println(bar);
 
         if (!a.complexityHotspots().isEmpty()) {

@@ -7,8 +7,9 @@ package com.codeatlas.reporting;
 public final class CsvReporter {
 
     public String renderDeadCode(ReportData data) {
-        StringBuilder sb = new StringBuilder("qualifiedName,kind,confidence,location,recommendation\n");
+        StringBuilder sb = new StringBuilder("stableId,qualifiedName,kind,confidence,location,recommendation\n");
         data.analysis().deadCode().forEach(c -> sb
+                .append(csv(c.stableId())).append(',')
                 .append(csv(c.qualifiedName())).append(',')
                 .append(csv(c.kind().name())).append(',')
                 .append(c.confidence()).append(',')
@@ -18,8 +19,9 @@ public final class CsvReporter {
     }
 
     public String renderComplexity(ReportData data) {
-        StringBuilder sb = new StringBuilder("qualifiedName,complexity,risk,location\n");
+        StringBuilder sb = new StringBuilder("stableId,qualifiedName,complexity,risk,location\n");
         data.analysis().complexityHotspots().forEach(h -> sb
+                .append(csv(h.stableId())).append(',')
                 .append(csv(h.qualifiedName())).append(',')
                 .append(h.complexity()).append(',')
                 .append(csv(h.risk().name())).append(',')

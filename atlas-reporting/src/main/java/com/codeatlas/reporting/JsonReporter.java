@@ -35,7 +35,8 @@ public final class JsonReporter {
 
         sb.append("  \"complexityHotspots\": ").append(complexity(data)).append(",\n");
         sb.append("  \"deadCode\": ").append(deadCode(data)).append(",\n");
-        sb.append("  \"dependencies\": ").append(dependencies(data)).append("\n");
+        sb.append("  \"dependencies\": ").append(dependencies(data)).append(",\n");
+        sb.append("  \"diagnostics\": ").append(diagnostics(data)).append("\n");
         sb.append("}\n");
         return sb.toString();
     }
@@ -74,7 +75,8 @@ public final class JsonReporter {
             return "[]";
         }
         for (ComplexityHotspot h : data.analysis().complexityHotspots()) {
-            arr.add("{\"name\": " + Json.quote(h.qualifiedName())
+            arr.add("{\"stableId\": " + Json.quote(h.stableId())
+                    + ", \"name\": " + Json.quote(h.qualifiedName())
                     + ", \"complexity\": " + h.complexity()
                     + ", \"risk\": " + Json.quote(h.risk().name())
                     + ", \"location\": " + Json.quote(h.location().toString()) + "}");
@@ -90,12 +92,25 @@ public final class JsonReporter {
         for (DeadCodeCandidate c : data.analysis().deadCode()) {
             StringJoiner ev = new StringJoiner(", ", "[", "]");
             c.evidence().forEach(e -> ev.add(Json.quote(e)));
-            arr.add("{\"name\": " + Json.quote(c.qualifiedName())
+            arr.add("{\"stableId\": " + Json.quote(c.stableId())
+                    + ", \"name\": " + Json.quote(c.qualifiedName())
                     + ", \"kind\": " + Json.quote(c.kind().name())
                     + ", \"confidence\": " + c.confidence()
                     + ", \"recommendation\": " + Json.quote(c.recommendation())
                     + ", \"evidence\": " + ev
                     + ", \"location\": " + Json.quote(c.location().toString()) + "}");
+        }
+        return arr.toString();
+    }
+
+    private String diagnostics(ReportData data) {
+        var diags = data.model().diagnostics();
+        if (diags.isEmpty()) {
+            return "[]";
+        }
+        StringJoiner arr = new StringJoiner(",\n    ", "[\n    ", "\n  ]");
+        for (var d : diags) {
+            arr.add("{\"code\": " + Json.quote(d.code()) + ", \"message\": " + Json.quote(d.message()) + "}");
         }
         return arr.toString();
     }

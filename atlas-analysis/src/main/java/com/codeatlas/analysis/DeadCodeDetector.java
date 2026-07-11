@@ -103,7 +103,7 @@ public final class DeadCodeDetector {
 
             confidence = Math.max(0, Math.min(96, confidence));
             if (confidence >= minConfidence) {
-                findings.add(new DeadCodeCandidate(e.qualifiedName(), e.kind(), List.copyOf(evidence),
+                findings.add(new DeadCodeCandidate(e.id(), e.qualifiedName(), e.kind(), List.copyOf(evidence),
                         confidence, e.location().orElse(SourceLocation.ofFile("unknown"))));
             }
         }

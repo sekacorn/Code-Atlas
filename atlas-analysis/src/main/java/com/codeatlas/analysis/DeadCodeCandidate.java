@@ -10,13 +10,15 @@ import java.util.List;
  * the evidence that produced it and a confidence percentage, and always recommends
  * human review before removal.
  *
+ * @param stableId      the entity's stable identifier (authoritative for suppressions/links)
  * @param qualifiedName the entity that looks unused
  * @param kind          what kind of artifact it is
  * @param evidence      human-readable checks that passed (e.g. "No references found")
  * @param confidence    0..100 confidence that this is genuinely dead
  * @param location      where it lives, for the reviewer
  */
-public record DeadCodeCandidate(String qualifiedName,
+public record DeadCodeCandidate(String stableId,
+                                String qualifiedName,
                                 EntityKind kind,
                                 List<String> evidence,
                                 int confidence,

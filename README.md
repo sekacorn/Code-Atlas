@@ -18,6 +18,7 @@ function. AI, if ever enabled, is an optional explanation layer only.
 
 - [CURRENT_STATE.md](CURRENT_STATE.md) — factual assessment of what is implemented, build health, and technical risks.
 - [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md) — source evidence, resolution status, and analysis coverage.
+- [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) — the deterministic id grammar, Ada spec/body merge, and collisions.
 - [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) — what the tool does not (yet) do, and what it does not claim.
 
 ## Status — Milestone 1 (Java + Ada vertical slice)
@@ -41,7 +42,7 @@ and who consumes it.**
 | **Repository scanner** | Recursive walk, default exclusions (`.git`, `target`, `build`, `out`, `node_modules`, `bin`, `obj`, …), language/type detection, SHA-256 hashing, parallel processing |
 | **Java parser** | Packages, classes, interfaces, enums, records, methods, constructors, fields, imports, inheritance/implements, method calls, instantiations, type references, cyclomatic complexity, exposure heuristics (annotations, `main`, visibility) — built on [JavaParser] |
 | **Ada / SPARK parser** | `.ads`/`.adb`: packages & child packages, procedures, functions, types (record/enum/access/derived), tasks, protected types, exceptions, `with` dependencies, renamings, generic instantiations, **SPARK Pre/Post contracts**, cyclomatic complexity — deterministic line-and-scope scanner, no native toolchain required |
-| **Unified model** | Language-neutral entities & relationships with stable, deterministic ids and source locations |
+| **Unified model** | Language-neutral entities & relationships with **deterministic, location-independent stable ids** (`java:type:…`, `ada:function:…(Integer)`), Ada spec/body merged into one identity, and source locations kept as evidence — see [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) |
 | **Cross-reference linker** | Resolves symbolic call/type targets across files; conservative on ambiguity so dead-code is never overstated |
 | **Analysis** | Repository metrics (files, LOC, comments, language distribution, entity counts), complexity hotspots with risk bands, **dead-code detection with an evidence + confidence model**, package coupling & circular-dependency detection |
 | **Local index** | H2 store (in-memory by default, file-backed optional) for entities, relationships and file hashes, with **incremental change detection** |
