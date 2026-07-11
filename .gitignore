@@ -1,0 +1,16 @@
+# Build output
+target/
+*.class
+
+# Generated reports and local indexes
+atlas-report/
+*.mv.db
+*.trace.db
+*.lock.db
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
