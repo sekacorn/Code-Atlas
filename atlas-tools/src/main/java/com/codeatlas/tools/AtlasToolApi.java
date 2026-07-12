@@ -213,6 +213,11 @@ public final class AtlasToolApi implements AutoCloseable {
         return neighbors(stableId, USAGE, false, limit);
     }
 
+    /** Structural members of a container (package → types, type → methods/fields). */
+    public ToolResult<List<Views.NeighborView>> getMembers(String stableId, int limit) {
+        return neighbors(stableId, EnumSet.of(RelationshipKind.CONTAINS), false, limit);
+    }
+
     private ToolResult<List<Views.NeighborView>> neighbors(String stableId, Set<RelationshipKind> kinds,
                                                            boolean incoming, int limit) {
         if (model.entity(stableId).isEmpty()) {

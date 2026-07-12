@@ -60,9 +60,9 @@ concrete technical risks that later milestones must address.
   scan versioning with failed-scan protection, and conservative reuse of unchanged
   parser results (see PERSISTENCE.md / INCREMENTAL_ANALYSIS.md). Remaining gap:
   only the latest completed scan's model snapshot is retained.
-- **Dependency/lineage view.** Package coupling and a component-level "data flow &
-  consumers" report exist; true data lineage (source→transform→store→consumer with
-  per-edge evidence) is **not** implemented.
+- ~~Dependency/lineage view.~~ **Now implemented** as full Java + Ada data lineage
+  with per-edge evidence (see DATA_LINEAGE.md); the component-coupling view remains
+  as a complementary report.
 
 ## Scaffolded only
 
@@ -76,25 +76,23 @@ concrete technical risks that later milestones must address.
   endpoint→…→table; Ada: console→procedure→transformation→package state→output;
   per-edge rule ids, confidence, resolution status, gaps, CLI/JSON/HTML — see
   DATA_LINEAGE.md). Still missing: config/SQL parser input to lineage.
-- Persistent file-backed H2 as the **default** for ordinary runs.
 - Config (XML/YAML/JSON/properties), database (SQL/DDL), build (`.gpr`, Maven/
   Gradle) and custom-format parsers.
 - Build membership feeding dead-code / entry-point / impact analysis.
-- Scan versioning; storage of findings/diagnostics/parser-and-rule versions.
-- Deterministic summaries (repository/component/method).
-- ~~Read-only agent tool API~~ **Done** (see AGENTS.md). Still missing: the agents
-  themselves (Orientation, Lineage Investigator, Impact) and their deterministic
-  summary templates.
-- Impact analysis; unused-package detection; PDF reports.
+- ~~Read-only agent tool API~~ ~~Orientation Agent + deterministic summaries~~
+  **Done** (see AGENTS.md). Still missing: the Data-Lineage Investigator and
+  Impact agents (thin deterministic wrappers over existing tool operations).
+- Unused-package detection; PDF reports. (Deterministic change impact exists as
+  the `calculate_change_impact` tool operation; a dedicated Impact agent is future.)
 
 ---
 
 ## Current architecture
 
-**Module structure** (12 Maven modules, Java 21):
+**Module structure** (13 Maven modules, Java 21):
 `atlas-model` → `atlas-parser-api` → `atlas-scanner` → `atlas-parser-java` /
 `atlas-parser-ada` → `atlas-index` → `atlas-analysis` → `atlas-reporting` →
-`atlas-tools` → `atlas-core` → `atlas-cli`.
+`atlas-tools` → `atlas-agents` → `atlas-core` → `atlas-cli`.
 
 **Main execution path** (`CodeAtlasPipeline.run`):
 `scan → read+parse each file in parallel → merge into one SoftwareModel →
@@ -115,16 +113,17 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
   separate graph database. Dependency/cycle analysis runs over these.
 - **Analysis engine:** deterministic; `AnalysisEngine` composes metrics, complexity,
   dead-code, dependency analyzers. No AI anywhere.
-- **CLI:** picocli; `scan`, `lineage` and `tool` subcommands.
+- **CLI:** picocli; `scan`, `lineage`, `tool`, `orient` and `summarize` subcommands.
 - **UI:** none (CLI + static HTML by design decision).
-- **AI / agents:** no agents yet; the read-only agent tool API they will use is
-  implemented (`atlas-tools`, see AGENTS.md). No AI anywhere.
+- **AI / agents:** the Repository Orientation Agent and entity summaries run in
+  deterministic mode over the read-only tool API (`atlas-agents`, see AGENTS.md).
+  No AI anywhere; local-AI mode remains future and optional.
 
 ## Current build health
 
-- **Build:** `mvn clean install` → **BUILD SUCCESS** (12 modules).
-- **Test:** `mvn test` → **79 tests, 0 failures, 0 errors** across model, scanner,
-  parsers, index, analysis, core and tools.
+- **Build:** `mvn clean install` → **BUILD SUCCESS** (13 modules).
+- **Test:** `mvn test` → **86 tests, 0 failures, 0 errors** across model, scanner,
+  parsers, index, analysis, core, tools and agents.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging
   binding on the test classpath); the CLI ships `slf4j-simple` at runtime.
 - **Determinism:** verified — two scans of the same repo produce byte-identical
@@ -173,5 +172,6 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 4. ✅ **Java data-lineage vertical slice** (endpoint→…→table, evidence-backed). _Done._
 5. ✅ **Ada data-lineage vertical slice** (console→procedure→transformation→state→output). _Done._
 6. ✅ **Read-only agent tool API** (atlas-tools, `atlas tool`, DB-level read-only). _Done._
-7. **Repository Orientation Agent** (deterministic mode over the tool API), then the
-   Data-Lineage Investigator Agent.
+7. ✅ **Deterministic summaries + Repository Orientation Agent** (atlas-agents,
+   `atlas orient` / `atlas summarize`). _Done._
+8. **Data-Lineage Investigator Agent** (deterministic mode over trace_data_lineage).

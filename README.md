@@ -21,7 +21,7 @@ function. AI, if ever enabled, is an optional explanation layer only.
 - [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) — the deterministic id grammar, Ada spec/body merge, and collisions.
 - [DATA_LINEAGE.md](DATA_LINEAGE.md) — Java data lineage: rules, confidence, CLI queries, JSON format, gaps.
 - [PERSISTENCE.md](PERSISTENCE.md) / [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) — file-backed index, scan versioning, parse reuse.
-- [AGENTS.md](AGENTS.md) — the read-only agent tool API (operations, envelope, guarantees); agents themselves are not built yet.
+- [AGENTS.md](AGENTS.md) — the read-only agent tool API, deterministic summaries, and the Repository Orientation Agent.
 - [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) — what the tool does not (yet) do, and what it does not claim.
 
 ## Status — Milestone 1 (Java + Ada vertical slice)
@@ -55,6 +55,7 @@ and who consumes it.**
 | **Resolution status** | Relationships expose `DISCOVERED` / `RESOLVED` / `INFERRED` / `UNRESOLVED` so uncertainty is explicit (see [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md)) |
 | **Reports** | Self-contained **HTML** dashboard (offline, no CDN/scripts), plus **JSON** and **CSV** |
 | **Agent tool API** | `atlas tool <operation>` / `AtlasToolApi`: a controlled, **database-level read-only** query boundary over the persisted index (callers, dependents, lineage, impact, dead code, summary) with stable ids, evidence and honest `supported=false` for missing capabilities — see [AGENTS.md](AGENTS.md) |
+| **Orientation agent & summaries** | `atlas orient` answers "where do I start / what's central / what couldn't be analyzed" and `atlas summarize <id>` explains methods and components — **deterministic templates over the tool API**, confirmed facts separated from labelled inferences, every statement citing stable ids and file:line evidence — see [AGENTS.md](AGENTS.md) |
 | **CLI** | `atlas scan <repo>` — single runnable jar, no install |
 
 ### Dead-code philosophy
@@ -92,6 +93,8 @@ java -jar atlas-cli/target/atlas.jar lineage sql:table:customer --upstream --rep
 java -jar atlas-cli/target/atlas.jar lineage ada:variable:Mission_Data.Current_Route --upstream --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar tool get_repository_summary --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar tool calculate_change_impact --id sql:table:customer --repo /path/to/repo
+java -jar atlas-cli/target/atlas.jar orient --repo /path/to/repo
+java -jar atlas-cli/target/atlas.jar summarize sql:table:customer --repo /path/to/repo
 ```
 
 ### Options

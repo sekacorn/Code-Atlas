@@ -82,8 +82,12 @@ expectations. It is updated as limitations are addressed.
 
 ## Not provided
 
-- No agents / AI layer yet. The read-only tool API they will use exists
-  (see AGENTS.md); the agents themselves are the next milestones.
+- Agents run in **deterministic mode only** (templates and graph rules); the
+  optional local-AI explanation mode and AgentForge adapter are not implemented.
+  The Data-Lineage Investigator and Impact agents are still to come.
+- Orientation heuristics are bounded: candidate scans cap at 100 entities per
+  kind, "responsibility" lines are structural inferences, and reading-order
+  advice is heuristic — all labelled as such in the output.
 - No interactive UI (CLI + static HTML by design).
 
 ## What Code Atlas does **not** claim

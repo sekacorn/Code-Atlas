@@ -76,7 +76,7 @@ public final class ToolCommand implements Callable<Integer> {
         }
         try (AtlasToolApi api = AtlasToolApi.open(index)) {
             return dispatch(api);
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException | com.codeatlas.index.IndexException e) {
             System.err.println(e.getMessage());
             return 4;
         }
@@ -93,6 +93,7 @@ public final class ToolCommand implements Callable<Integer> {
             case "get_callees" -> api.getCallees(require(id, "--id"), limit);
             case "get_dependencies" -> api.getDependencies(require(id, "--id"), limit);
             case "get_dependents" -> api.getDependents(require(id, "--id"), limit);
+            case "get_members" -> api.getMembers(require(id, "--id"), limit);
             case "get_data_sources" -> api.getDataSources();
             case "get_data_sinks" -> api.getDataSinks();
             case "get_database_references" -> api.getDatabaseReferences(id, limit);

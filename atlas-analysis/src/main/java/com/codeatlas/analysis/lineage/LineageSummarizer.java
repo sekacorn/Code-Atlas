@@ -38,7 +38,7 @@ public final class LineageSummarizer {
             endpointViews.add(new LineageSummary.EndpointView(e.id(),
                     e.attribute(Entity.Attributes.HTTP_METHOD).orElse("?"),
                     e.attribute(Entity.Attributes.HTTP_PATH).orElse("?"),
-                    e.attribute("handler").orElse(""),
+                    handlerOf(model, e),
                     e.boolAttribute(Entity.Attributes.HTTP_PATH_UNRESOLVED, false),
                     e.boolAttribute(Entity.Attributes.VALIDATED, false)));
         }
@@ -120,6 +120,14 @@ public final class LineageSummarizer {
                 new LineageSummary.Coverage(endpoints.size(), endpointsWithStorePath,
                         repositories, repositoriesMapped, countMappedEntities(model),
                         resolvedEdges, inferredEdges, unresolvedEdges, completePaths, partialPaths));
+    }
+
+    /** The handler method of an endpoint, from its INVOKES edge. */
+    private String handlerOf(SoftwareModel model, Entity endpoint) {
+        return model.outgoing(endpoint.id()).stream()
+                .filter(r -> r.kind() == RelationshipKind.INVOKES && r.resolved())
+                .map(r -> model.entity(r.toId()).map(Entity::qualifiedName).orElse(r.toId()))
+                .sorted().findFirst().orElse("");
     }
 
     /**

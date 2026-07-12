@@ -1,9 +1,10 @@
 # Code Atlas — Agent Tool API and Agent Plans
 
-**Status: the read-only agent tool API is implemented. No agents exist yet.**
-The Repository Orientation Agent and Data-Lineage Investigator Agent are the next
-milestones and will be built strictly on top of this boundary. Nothing in the
-core platform depends on agents or AI; everything below works without either.
+**Status: the read-only agent tool API and the Repository Orientation Agent
+(deterministic mode) are implemented, together with deterministic method and
+component summaries.** The Data-Lineage Investigator Agent is the next milestone.
+Nothing in the core platform depends on agents or AI; everything below works
+without either, and no LLM is involved anywhere.
 
 ## The tool boundary
 
@@ -82,7 +83,39 @@ built from tool results and cite their stable ids and evidence, in the structure
 answer, confirmed facts, inferred findings, evidence, confidence, unresolved
 questions, known limitations, suggested next investigation.
 
-Runtime modes, in order of delivery: **deterministic** (graph traversal, rules
-and templates over this API — no LLM required), then optional **local AI** that
-receives only structured tool results (never the repository), then an optional
-AgentForge adapter. The core product remains fully useful with AI disabled.
+## Implemented agents (deterministic mode)
+
+### Repository Orientation Agent — `atlas orient`
+
+Answers the eight orientation questions (where to start, main modules, likely
+entry points, most central components, data stores, external systems, what to
+read first, what could not be analyzed) using only tool-API results: endpoints
+and input sources as entry points, package member counts for module size,
+resolved fan-in for centrality, tables + Ada package state as stores, and
+unresolved qualified targets as *inferred* external systems. Every answer uses
+the structure above; handlers and other facts are read from graph edges, never
+from naming alone; candidate scans are capped (100 per kind) and the cap is a
+documented heuristic.
+
+### Deterministic summaries — `atlas summarize <stable-id>`
+
+Method/subprogram summaries state parameters, returns, complexity, calls, reads,
+writes (side effects), SPARK contracts and lineage role; component summaries
+state members, dependencies, consumers, touched data stores, peak member
+complexity and dead-code risks. Structural facts are confirmed and cited; the
+responsibility line is always labelled **inferred**.
+
+```
+atlas orient --repo /path/to/repo [--format json]
+atlas summarize java:method:com.example.CustomerService#createCustomer(CustomerRequest) --repo …
+atlas summarize ada:package:Mission_Data --repo …
+```
+
+Both are deterministic: identical index content yields byte-identical output.
+
+## Runtime modes
+
+In order of delivery: **deterministic** (implemented — graph traversal, rules and
+templates over this API, no LLM), then optional **local AI** that receives only
+structured tool results (never the repository), then an optional AgentForge
+adapter. The core product remains fully useful with AI disabled.
