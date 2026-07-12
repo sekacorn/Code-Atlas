@@ -25,6 +25,7 @@ server, no administrator privileges, fully offline.
 | `relationship`, `relationship_attr` | edges **with resolution status, source location and attributes** (rule ids, confidence, …) |
 | `file_hash` | SHA-256 per file, the basis of incremental change detection |
 | `cache_file`, `cache_entity(_attr)`, `cache_rel(_attr)` | the parse cache: exact per-file parser output keyed by content hash + parser id + parser version |
+| `diagnostic` | scan-time diagnostics (e.g. stable-id collisions), persisted with the snapshot |
 | `meta` | schema version and store metadata |
 
 ## Scan lifecycle and failure safety
@@ -43,6 +44,13 @@ scan id, so deterministic-output guarantees extend to structures that embed it.
 Run history (including failed runs) is kept in the `scan` table; only the *model
 snapshot* of the latest completed scan is retained (a known limitation — see
 KNOWN_LIMITATIONS.md).
+
+## Read-only handles
+
+`AtlasStore.atPathReadOnly` opens an existing index with H2's
+`ACCESS_MODE_DATA=r`: the engine rejects every write. This is the storage-level
+guarantee behind the agent tool API. Read-only handles never create or migrate a
+schema — a version mismatch is reported with instructions to rescan.
 
 ## Schema migration
 

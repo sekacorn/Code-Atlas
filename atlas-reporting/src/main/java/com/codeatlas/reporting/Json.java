@@ -1,19 +1,16 @@
 package com.codeatlas.reporting;
 
 /**
- * A minimal, dependency-free JSON writer. The platform avoids third-party JSON
- * libraries here to keep the reporting module lean and its output auditable.
+ * A minimal, dependency-free JSON string escaper. The platform avoids third-party
+ * JSON libraries so its output stays lean, deterministic and auditable. Public
+ * because the agent tool API renders its results with the same escaping.
  */
-final class Json {
+public final class Json {
 
-    private final StringBuilder sb = new StringBuilder();
-
-    Json append(String raw) {
-        sb.append(raw);
-        return this;
+    private Json() {
     }
 
-    static String quote(String s) {
+    public static String quote(String s) {
         if (s == null) {
             return "null";
         }
@@ -38,10 +35,5 @@ final class Json {
         }
         b.append('"');
         return b.toString();
-    }
-
-    @Override
-    public String toString() {
-        return sb.toString();
     }
 }

@@ -71,10 +71,19 @@ expectations. It is updated as limitations are addressed.
   not re-merging); and entity locations persisted in the model snapshot drop
   column numbers (the parse cache keeps them).
 
+## Agent tool API
+
+- `get_build_membership` and `get_configuration_references` return
+  `supported=false` until build-file and configuration parsers exist.
+- Dead-code/complexity served through the tool API use the default analysis
+  thresholds; a scan run with custom thresholds may report different counts.
+- Change impact states its blind spots explicitly (no build/config membership;
+  reflection/DI/dynamic paths invisible).
+
 ## Not provided
 
-- No agents / AI layer yet — deferred until the evidence graph and read-only tool
-  API can support them.
+- No agents / AI layer yet. The read-only tool API they will use exists
+  (see AGENTS.md); the agents themselves are the next milestones.
 - No interactive UI (CLI + static HTML by design).
 
 ## What Code Atlas does **not** claim

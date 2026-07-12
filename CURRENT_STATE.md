@@ -82,17 +82,19 @@ concrete technical risks that later milestones must address.
 - Build membership feeding dead-code / entry-point / impact analysis.
 - Scan versioning; storage of findings/diagnostics/parser-and-rule versions.
 - Deterministic summaries (repository/component/method).
-- Read-only agent tool API and the agents (Orientation, Lineage, Impact).
+- ~~Read-only agent tool API~~ **Done** (see AGENTS.md). Still missing: the agents
+  themselves (Orientation, Lineage Investigator, Impact) and their deterministic
+  summary templates.
 - Impact analysis; unused-package detection; PDF reports.
 
 ---
 
 ## Current architecture
 
-**Module structure** (11 Maven modules, Java 21):
+**Module structure** (12 Maven modules, Java 21):
 `atlas-model` → `atlas-parser-api` → `atlas-scanner` → `atlas-parser-java` /
 `atlas-parser-ada` → `atlas-index` → `atlas-analysis` → `atlas-reporting` →
-`atlas-core` → `atlas-cli`.
+`atlas-tools` → `atlas-core` → `atlas-cli`.
 
 **Main execution path** (`CodeAtlasPipeline.run`):
 `scan → read+parse each file in parallel → merge into one SoftwareModel →
@@ -105,23 +107,24 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 - **Unified model:** single `SoftwareModel` (no competing second model). Entities
   keyed by deterministic string id; relationships are directed with a `resolved`
   flag and optional location.
-- **Storage:** H2 via `AtlasStore`, **in-memory by default**, file-backed optional.
+- **Storage:** H2 via `AtlasStore`, **file-backed by default** for CLI runs (in-memory
+  for tests/temporary sessions), with a database-level **read-only open mode**.
   Narrow key/value attribute table keeps it queryable. SQL is confined to
   `atlas-index` (not leaked into parsers/analysis).
 - **Graph model:** adjacency indexes on `SoftwareModel` (outgoing/incoming); no
   separate graph database. Dependency/cycle analysis runs over these.
 - **Analysis engine:** deterministic; `AnalysisEngine` composes metrics, complexity,
   dead-code, dependency analyzers. No AI anywhere.
-- **CLI:** picocli; single `scan` subcommand.
+- **CLI:** picocli; `scan`, `lineage` and `tool` subcommands.
 - **UI:** none (CLI + static HTML by design decision).
-- **AI / agents:** none yet (correctly deferred until the evidence graph supports them).
+- **AI / agents:** no agents yet; the read-only agent tool API they will use is
+  implemented (`atlas-tools`, see AGENTS.md). No AI anywhere.
 
 ## Current build health
 
-- **Build:** `mvn clean install` → **BUILD SUCCESS** (11 modules).
-- **Test:** `mvn test` → **14 tests, 0 failures, 0 errors** (scanner 2, java 3,
-  ada 3, index 2, analysis 3, core 1) plus the new coverage tests added in this
-  milestone.
+- **Build:** `mvn clean install` → **BUILD SUCCESS** (12 modules).
+- **Test:** `mvn test` → **79 tests, 0 failures, 0 errors** across model, scanner,
+  parsers, index, analysis, core and tools.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging
   binding on the test classpath); the CLI ships `slf4j-simple` at runtime.
 - **Determinism:** verified — two scans of the same repo produce byte-identical
@@ -169,5 +172,6 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 3. ✅ **Persistent file-backed H2 default + scan versioning + parse reuse** (resolved risk #4). _Done._
 4. ✅ **Java data-lineage vertical slice** (endpoint→…→table, evidence-backed). _Done._
 5. ✅ **Ada data-lineage vertical slice** (console→procedure→transformation→state→output). _Done._
-6. **Read-only agent tool API** (the evidence-backed graph is now ready for it),
-   then the Repository Orientation Agent and the Data-Lineage Investigator Agent.
+6. ✅ **Read-only agent tool API** (atlas-tools, `atlas tool`, DB-level read-only). _Done._
+7. **Repository Orientation Agent** (deterministic mode over the tool API), then the
+   Data-Lineage Investigator Agent.

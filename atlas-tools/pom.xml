@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.codeatlas</groupId>
+        <artifactId>code-atlas</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>atlas-tools</artifactId>
+    <name>Atlas Agent Tool API</name>
+    <description>Controlled read-only investigation API over the persisted index — the boundary future agents use</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-index</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-analysis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-reporting</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- Tests populate a real index through the pipeline and reuse the
+             lineage fixtures from atlas-core's test jar (no fixture duplication). -->
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

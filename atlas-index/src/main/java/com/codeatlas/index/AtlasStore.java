@@ -56,17 +56,23 @@ import java.util.Set;
 public final class AtlasStore implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(AtlasStore.class);
-    private static final String SCHEMA_VERSION = "2";
+    private static final String SCHEMA_VERSION = "3";
 
     private final Connection connection;
     private final String url;
+    private final boolean readOnly;
 
-    private AtlasStore(String url) {
+    private AtlasStore(String url, boolean readOnly) {
         this.url = url;
+        this.readOnly = readOnly;
         try {
             this.connection = DriverManager.getConnection(url);
             this.connection.setAutoCommit(false);
-            initSchema();
+            if (readOnly) {
+                verifySchema();
+            } else {
+                initSchema();
+            }
         } catch (SQLException e) {
             throw new IndexException("Cannot open index at " + url, e);
         }
@@ -74,12 +80,28 @@ public final class AtlasStore implements AutoCloseable {
 
     /** Opens a transient in-memory index (unit tests and explicit temporary sessions). */
     public static AtlasStore inMemory() {
-        return new AtlasStore("jdbc:h2:mem:atlas-" + System.nanoTime() + ";DB_CLOSE_DELAY=-1");
+        return new AtlasStore("jdbc:h2:mem:atlas-" + System.nanoTime() + ";DB_CLOSE_DELAY=-1", false);
     }
 
     /** Opens (or creates) a file-backed index at {@code dbPath} — no server, no admin. */
     public static AtlasStore atPath(Path dbPath) {
-        return new AtlasStore("jdbc:h2:file:" + dbPath.toAbsolutePath() + ";AUTO_SERVER=FALSE");
+        return new AtlasStore("jdbc:h2:file:" + dbPath.toAbsolutePath() + ";AUTO_SERVER=FALSE", false);
+    }
+
+    /**
+     * Opens an existing index <em>read-only</em>: the database engine itself
+     * rejects every write ({@code ACCESS_MODE_DATA=r}), which is the storage-level
+     * guarantee behind the agent tool boundary. The index must already exist with
+     * the current schema version — a read-only handle never migrates or reindexes.
+     */
+    public static AtlasStore atPathReadOnly(Path dbPath) {
+        return new AtlasStore("jdbc:h2:file:" + dbPath.toAbsolutePath()
+                + ";AUTO_SERVER=FALSE;ACCESS_MODE_DATA=r", true);
+    }
+
+    /** Whether this handle was opened read-only (agent tool boundary). */
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     // ---- schema ----
@@ -102,6 +124,18 @@ public final class AtlasStore implements AutoCloseable {
         connection.commit();
     }
 
+    /** Read-only handles verify the schema instead of creating or migrating it. */
+    private void verifySchema() throws SQLException {
+        if (!tableExists("META")) {
+            throw new IndexException("Index has no schema — run 'atlas scan' first", null);
+        }
+        String version = metaValue("schema_version").orElse(null);
+        if (!SCHEMA_VERSION.equals(version)) {
+            throw new IndexException("Index schema version " + version + " does not match "
+                    + SCHEMA_VERSION + " — rescan the repository to reindex", null);
+        }
+    }
+
     private boolean tableExists(String upperName) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(
                 "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?")) {
@@ -117,7 +151,7 @@ public final class AtlasStore implements AutoCloseable {
         try (Statement st = connection.createStatement()) {
             for (String t : List.of("relationship_attr", "relationship", "entity_attr", "entity",
                     "file_hash", "cache_rel_attr", "cache_rel", "cache_entity_attr", "cache_entity",
-                    "cache_file", "scan")) {
+                    "cache_file", "diagnostic", "scan")) {
                 st.execute("DROP TABLE IF EXISTS " + t);
             }
         }
@@ -234,6 +268,13 @@ public final class AtlasStore implements AutoCloseable {
                         attr_key VARCHAR NOT NULL,
                         attr_val VARCHAR,
                         PRIMARY KEY (path, ord, attr_key)
+                    )""");
+            st.execute("""
+                    CREATE TABLE IF NOT EXISTS diagnostic (
+                        ord     INT NOT NULL,
+                        code    VARCHAR NOT NULL,
+                        message VARCHAR,
+                        PRIMARY KEY (ord)
                     )""");
             st.execute("CREATE INDEX IF NOT EXISTS idx_rel_from ON relationship(from_id)");
             st.execute("CREATE INDEX IF NOT EXISTS idx_rel_to ON relationship(to_id)");
@@ -659,6 +700,7 @@ public final class AtlasStore implements AutoCloseable {
             st.execute("DELETE FROM relationship");
             st.execute("DELETE FROM entity_attr");
             st.execute("DELETE FROM entity");
+            st.execute("DELETE FROM diagnostic");
         }
     }
 
@@ -733,6 +775,31 @@ public final class AtlasStore implements AutoCloseable {
             rel.executeBatch();
             attr.executeBatch();
         }
+        try (PreparedStatement diag = connection.prepareStatement(
+                "INSERT INTO diagnostic(ord, code, message) VALUES (?,?,?)")) {
+            int ord = 0;
+            for (com.codeatlas.model.Diagnostic d : model.diagnostics()) {
+                diag.setInt(1, ord++);
+                diag.setString(2, d.code());
+                diag.setString(3, d.message());
+                diag.addBatch();
+            }
+            diag.executeBatch();
+        }
+    }
+
+    /** Scan-time diagnostics (e.g. stable-id collisions) persisted with the snapshot. */
+    public List<com.codeatlas.model.Diagnostic> loadDiagnostics() {
+        List<com.codeatlas.model.Diagnostic> out = new ArrayList<>();
+        try (Statement st = connection.createStatement();
+             ResultSet rs = st.executeQuery("SELECT code, message FROM diagnostic ORDER BY ord")) {
+            while (rs.next()) {
+                out.add(new com.codeatlas.model.Diagnostic(rs.getString(1), rs.getString(2)));
+            }
+        } catch (SQLException e) {
+            throw new IndexException("Cannot load diagnostics", e);
+        }
+        return out;
     }
 
     /** Reconstructs the persisted model (entities, attributes, relationships with metadata). */

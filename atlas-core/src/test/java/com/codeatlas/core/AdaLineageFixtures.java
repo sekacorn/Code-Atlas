@@ -10,12 +10,12 @@ import java.nio.file.Path;
  * console output, plus honesty cases (a call into a withed-but-absent Telemetry
  * package, and cross-package qualified state access).
  */
-final class AdaLineageFixtures {
+public final class AdaLineageFixtures {
 
     private AdaLineageFixtures() {
     }
 
-    static void writeMissionApp(Path repo) throws IOException {
+    public static void writeMissionApp(Path repo) throws IOException {
         Path src = repo.resolve("src");
         Files.createDirectories(src);
 

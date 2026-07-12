@@ -13,12 +13,12 @@ import java.nio.file.Path;
  * (ambiguous DI) and a call through a field whose type is not in the repository
  * (unresolvable external client).
  */
-final class LineageFixtures {
+public final class LineageFixtures {
 
     private LineageFixtures() {
     }
 
-    static void writeCustomerApp(Path repo) throws IOException {
+    public static void writeCustomerApp(Path repo) throws IOException {
         Path pkg = repo.resolve("src/main/java/com/example/customer");
         Files.createDirectories(pkg);
 

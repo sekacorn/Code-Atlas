@@ -20,6 +20,10 @@
             <artifactId>atlas-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-tools</artifactId>
+        </dependency>
+        <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
         </dependency>
