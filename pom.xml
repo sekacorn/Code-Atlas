@@ -28,6 +28,7 @@
         <module>atlas-index</module>
         <module>atlas-analysis</module>
         <module>atlas-reporting</module>
+        <module>atlas-graph</module>
         <module>atlas-tools</module>
         <module>atlas-agents</module>
         <module>atlas-core</module>
@@ -93,6 +94,11 @@
             <dependency>
                 <groupId>com.codeatlas</groupId>
                 <artifactId>atlas-reporting</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.codeatlas</groupId>
+                <artifactId>atlas-graph</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

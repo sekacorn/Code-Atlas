@@ -50,6 +50,10 @@ concrete technical risks that later milestones must address.
   file-hashes; **incremental change detection** (added/changed/removed/unchanged).
 - **Reporting** (`atlas-reporting`): self-contained HTML dashboard (offline, no
   CDN/scripts), JSON, CSV. Now includes an **Analysis Coverage** section.
+- **Graph exports** (`atlas-graph`): deterministic Graphviz **DOT** and
+  self-contained **SVG** for dependency (risk-coloured coupling), call,
+  dead-code (active vs probable-dead) and architecture (role-layered) graphs;
+  `atlas graph --type <t> --format <dot|svg>`.
 - **CLI** (`atlas-cli`): `atlas scan <repo>` as a single shaded runnable jar;
   options for output dir, persistent index, thresholds, threads.
 
@@ -93,10 +97,10 @@ concrete technical risks that later milestones must address.
 
 ## Current architecture
 
-**Module structure** (14 Maven modules, Java 21):
+**Module structure** (15 Maven modules, Java 21):
 `atlas-model` → `atlas-parser-api` → `atlas-scanner` → `atlas-parser-java` /
 `atlas-parser-ada` → `atlas-parser-config` → `atlas-index` → `atlas-analysis` → `atlas-reporting` →
-`atlas-tools` → `atlas-agents` → `atlas-core` → `atlas-cli`.
+`atlas-graph` → `atlas-tools` → `atlas-agents` → `atlas-core` → `atlas-cli`.
 
 **Main execution path** (`CodeAtlasPipeline.run`):
 `scan → read+parse each file in parallel → merge into one SoftwareModel →
@@ -114,10 +118,11 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
   Narrow key/value attribute table keeps it queryable. SQL is confined to
   `atlas-index` (not leaked into parsers/analysis).
 - **Graph model:** adjacency indexes on `SoftwareModel` (outgoing/incoming); no
-  separate graph database. Dependency/cycle analysis runs over these.
+  separate graph database. Dependency/cycle analysis and the DOT/SVG graph
+  exports run over these.
 - **Analysis engine:** deterministic; `AnalysisEngine` composes metrics, complexity,
   dead-code, dependency analyzers. No AI anywhere.
-- **CLI:** picocli; `scan`, `lineage`, `tool`, `orient` and `summarize` subcommands.
+- **CLI:** picocli; `scan`, `lineage`, `tool`, `orient`, `summarize`, `investigate` and `graph` subcommands.
 - **UI:** none (CLI + static HTML by design decision).
 - **AI / agents:** the Repository Orientation Agent and entity summaries run in
   deterministic mode over the read-only tool API (`atlas-agents`, see AGENTS.md).
@@ -125,7 +130,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 
 ## Current build health
 
-- **Build:** `mvn clean install` → **BUILD SUCCESS** (14 modules).
+- **Build:** `mvn clean install` → **BUILD SUCCESS** (15 modules).
 - **Test:** `mvn test` → **91 tests, 0 failures, 0 errors** across model, scanner,
   parsers, index, analysis, core, tools and agents.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging

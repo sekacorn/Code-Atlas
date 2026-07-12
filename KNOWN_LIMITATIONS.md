@@ -95,6 +95,10 @@ expectations. It is updated as limitations are addressed.
 - Orientation heuristics are bounded: candidate scans cap at 100 entities per
   kind, "responsibility" lines are structural inferences, and reading-order
   advice is heuristic — all labelled as such in the output.
+- Graph **SVG** export uses a simple deterministic layered layout, capped at 200
+  nodes; for large or dense graphs, export **DOT** and render with Graphviz for
+  better routing. There is no interactive graph viewer (CLI + static HTML/SVG by
+  design).
 - No interactive UI (CLI + static HTML by design).
 
 ## What Code Atlas does **not** claim

@@ -55,6 +55,7 @@ and who consumes it.**
 | **Analysis coverage** | Every scan reports files analyzed/skipped/failed and reference resolution rate, and is labelled **PARTIAL** when coverage is incomplete — incomplete analysis is never presented as complete |
 | **Resolution status** | Relationships expose `DISCOVERED` / `RESOLVED` / `INFERRED` / `UNRESOLVED` so uncertainty is explicit (see [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md)) |
 | **Reports** | Self-contained **HTML** dashboard (offline, no CDN/scripts), plus **JSON** and **CSV** |
+| **Graph exports** | `atlas graph --type <dependency\|call\|dead-code\|architecture> --format <dot\|svg>` — deterministic Graphviz DOT and self-contained SVG views over the persisted model (risk-coloured coupling, call graph, active-vs-dead, role layers) |
 | **Agent tool API** | `atlas tool <operation>` / `AtlasToolApi`: a controlled, **database-level read-only** query boundary over the persisted index (callers, dependents, lineage, impact, dead code, summary) with stable ids, evidence and honest `supported=false` for missing capabilities — see [AGENTS.md](AGENTS.md) |
 | **Deterministic agents** | `atlas orient` (where do I start / what's central / what couldn't be analyzed), `atlas summarize <id>` (method/component summaries) and `atlas investigate <id>` (where data originates, what transforms it, where it's stored, who consumes it, what's unresolved — with the numbered confirmed path) — **templates over the tool API, no LLM**, confirmed facts separated from labelled inferences, every statement citing stable ids and file:line evidence — see [AGENTS.md](AGENTS.md) |
 | **CLI** | `atlas scan <repo>` — single runnable jar, no install |
@@ -97,6 +98,7 @@ java -jar atlas-cli/target/atlas.jar tool calculate_change_impact --id sql:table
 java -jar atlas-cli/target/atlas.jar orient --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar summarize sql:table:customer --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar investigate sql:table:customer --repo /path/to/repo
+java -jar atlas-cli/target/atlas.jar graph --type architecture --format svg --repo /path/to/repo -o arch.svg
 ```
 
 ### Options
