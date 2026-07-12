@@ -30,7 +30,7 @@ public final class OrientationAgent {
     }
 
     /** Answers all orientation questions in a fixed, deterministic order. */
-    public OrientationReport orient() {
+    public AgentReport orient() {
         List<AgentAnswer> answers = List.of(
                 whereShouldIStart(),
                 whatAreTheMainModules(),
@@ -40,7 +40,7 @@ public final class OrientationAgent {
                 whatExternalSystemsExist(),
                 whatShouldIReadFirst(),
                 whatCouldNotBeAnalyzed());
-        return new OrientationReport(api.scanId(), answers);
+        return new AgentReport(api.scanId(), "Repository Orientation (deterministic)", answers);
     }
 
     // ---- the eight questions ----

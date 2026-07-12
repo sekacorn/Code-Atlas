@@ -1,10 +1,10 @@
 # Code Atlas — Agent Tool API and Agent Plans
 
-**Status: the read-only agent tool API and the Repository Orientation Agent
-(deterministic mode) are implemented, together with deterministic method and
-component summaries.** The Data-Lineage Investigator Agent is the next milestone.
-Nothing in the core platform depends on agents or AI; everything below works
-without either, and no LLM is involved anywhere.
+**Status: the read-only agent tool API, deterministic summaries, the Repository
+Orientation Agent and the Data-Lineage Investigator Agent are all implemented in
+deterministic mode** — every numbered milestone of the enhancement addendum is
+complete. Nothing in the core platform depends on agents or AI; everything below
+works without either, and no LLM is involved anywhere.
 
 ## The tool boundary
 
@@ -105,13 +105,26 @@ state members, dependencies, consumers, touched data stores, peak member
 complexity and dead-code risks. Structural facts are confirmed and cited; the
 responsibility line is always labelled **inferred**.
 
+### Data-Lineage Investigator Agent — `atlas investigate <entity>`
+
+Answers, for one entity: **where did this data originate, what transforms it,
+where is it stored, where does it go and who consumes it, and which parts of the
+path are unresolved** — plus an overview with the numbered confirmed path
+(origin → … → target), each step backed by per-edge evidence and the path
+confidence taken from its weakest edge. Origins include input sources read by
+the entity's writers (one evidence-backed hop); transformation steps cite their
+`ATLAS-LINEAGE-*` rule; external consumers and unresolved references appear as
+first-class answers. Accepts a stable id, `"POST /path"` shorthand, or a unique
+name suffix.
+
 ```
 atlas orient --repo /path/to/repo [--format json]
 atlas summarize java:method:com.example.CustomerService#createCustomer(CustomerRequest) --repo …
-atlas summarize ada:package:Mission_Data --repo …
+atlas investigate sql:table:customer --repo …
+atlas investigate ada:variable:Mission_Data.Current_Route --repo …
 ```
 
-Both are deterministic: identical index content yields byte-identical output.
+All are deterministic: identical index content yields byte-identical output.
 
 ## Runtime modes
 

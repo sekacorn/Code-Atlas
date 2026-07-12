@@ -84,7 +84,10 @@ expectations. It is updated as limitations are addressed.
 
 - Agents run in **deterministic mode only** (templates and graph rules); the
   optional local-AI explanation mode and AgentForge adapter are not implemented.
-  The Data-Lineage Investigator and Impact agents are still to come.
+  A dedicated Impact agent remains future (the tool operation exists).
+- The investigator's origin detection follows lineage paths plus one
+  evidence-backed hop from writers to their input sources; longer indirect
+  origin chains may be missed and are reported as absent, not guessed.
 - Orientation heuristics are bounded: candidate scans cap at 100 entities per
   kind, "responsibility" lines are structural inferences, and reading-order
   advice is heuristic — all labelled as such in the output.

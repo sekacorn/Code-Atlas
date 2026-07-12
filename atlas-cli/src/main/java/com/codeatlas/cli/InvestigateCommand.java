@@ -1,30 +1,32 @@
 package com.codeatlas.cli;
 
-import com.codeatlas.agents.AgentAnswer;
-import com.codeatlas.agents.EntitySummarizer;
 import com.codeatlas.agents.AgentReport;
+import com.codeatlas.agents.LineageInvestigatorAgent;
 import com.codeatlas.tools.AtlasToolApi;
+import com.codeatlas.tools.Views;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
- * {@code atlas summarize <id>} — deterministic method/component summary from the
- * persisted index: confirmed facts (parameters, calls, reads, writes, contracts)
- * with cited evidence, inferred statements explicitly labelled. No LLM involved.
+ * {@code atlas investigate <start>} — the Data-Lineage Investigator Agent in
+ * deterministic mode: where does this data originate, what transforms it, where
+ * is it stored, who consumes it, and which parts of the path are unresolved.
+ * Accepts a stable id, an endpoint shorthand ({@code "POST /customers"}) or a
+ * unique name suffix. Read-only; no LLM involved.
  */
-@Command(name = "summarize",
+@Command(name = "investigate",
         mixinStandardHelpOptions = true,
-        description = "Deterministic summary of a method, subprogram or component by stable id.")
-public final class SummarizeCommand implements Callable<Integer> {
+        description = "Run the deterministic Data-Lineage Investigator Agent for one entity.")
+public final class InvestigateCommand implements Callable<Integer> {
 
-    @Parameters(index = "0", description = "Stable entity id (e.g. java:method:com.x.S#run(), ada:package:Nav).")
-    private String stableId;
+    @Parameters(index = "0", description = "Entity to investigate: stable id, \"POST /path\", or unique name suffix.")
+    private String start;
 
     @Option(names = {"--repo"}, description = "Repository whose default index to query (default: current directory).")
     private Path repository = Path.of(".");
@@ -44,12 +46,14 @@ public final class SummarizeCommand implements Callable<Integer> {
             return 4;
         }
         try (AtlasToolApi api = AtlasToolApi.open(index)) {
-            AgentAnswer answer = new EntitySummarizer(api).summarize(stableId);
-            if (format.equalsIgnoreCase("json")) {
-                System.out.print(new AgentReport(api.scanId(), "Entity Summary (deterministic)", List.of(answer)).toJson());
-            } else {
-                System.out.print(answer.toText());
+            var found = api.findEntity(start);
+            Optional<Views.EntityView> entity = found.value();
+            if (entity.isEmpty()) {
+                System.err.println(found.note());
+                return 3;
             }
+            AgentReport report = new LineageInvestigatorAgent(api).investigate(entity.get().stableId());
+            System.out.print(format.equalsIgnoreCase("json") ? report.toJson() : report.toText());
             return 0;
         } catch (IllegalArgumentException e) {
             System.err.println(e.getMessage());

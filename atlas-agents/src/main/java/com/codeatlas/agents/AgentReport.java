@@ -6,16 +6,16 @@ import java.util.List;
 import java.util.StringJoiner;
 
 /**
- * The full orientation report: eight answers in a fixed order, pinned to one
- * scan. Text for humans, deterministic JSON for machines.
+ * A deterministic agent's full report: a titled, fixed-order list of answers
+ * pinned to one scan. Text for humans, deterministic JSON for machines.
  */
-public record OrientationReport(String scanId, List<AgentAnswer> answers) {
+public record AgentReport(String scanId, String title, List<AgentAnswer> answers) {
 
     public String toText() {
         StringBuilder sb = new StringBuilder();
         String bar = "=".repeat(72);
         sb.append(bar).append('\n');
-        sb.append("  Repository Orientation (deterministic) - scan ").append(scanId).append('\n');
+        sb.append("  ").append(title).append(" - scan ").append(scanId).append('\n');
         sb.append(bar).append('\n');
         for (AgentAnswer a : answers) {
             sb.append('\n').append(a.toText());
@@ -26,7 +26,9 @@ public record OrientationReport(String scanId, List<AgentAnswer> answers) {
 
     public String toJson() {
         StringBuilder sb = new StringBuilder();
-        sb.append("{\n  \"scanId\": ").append(Json.quote(scanId)).append(",\n  \"answers\": [\n");
+        sb.append("{\n  \"scanId\": ").append(Json.quote(scanId))
+          .append(",\n  \"title\": ").append(Json.quote(title))
+          .append(",\n  \"answers\": [\n");
         StringJoiner arr = new StringJoiner(",\n");
         for (AgentAnswer a : answers) {
             arr.add("    {\"question\": " + Json.quote(a.question())

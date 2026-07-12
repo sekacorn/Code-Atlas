@@ -40,7 +40,7 @@ class OrientationAgentTest {
             throws IOException {
         Path index = scannedIndex(repo, indexDir, false);
         try (AtlasToolApi api = AtlasToolApi.open(index)) {
-            OrientationReport report = new OrientationAgent(api).orient();
+            AgentReport report = new OrientationAgent(api).orient();
             assertEquals(8, report.answers().size(), "all eight orientation questions are answered");
             assertEquals(api.scanId(), report.scanId());
 
@@ -67,7 +67,7 @@ class OrientationAgentTest {
             throws IOException {
         Path index = scannedIndex(repo, indexDir, false);
         try (AtlasToolApi api = AtlasToolApi.open(index)) {
-            OrientationReport report = new OrientationAgent(api).orient();
+            AgentReport report = new OrientationAgent(api).orient();
 
             AgentAnswer external = report.answers().stream()
                     .filter(a -> a.question().contains("external systems")).findFirst().orElseThrow();

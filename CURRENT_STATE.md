@@ -79,9 +79,9 @@ concrete technical risks that later milestones must address.
 - Config (XML/YAML/JSON/properties), database (SQL/DDL), build (`.gpr`, Maven/
   Gradle) and custom-format parsers.
 - Build membership feeding dead-code / entry-point / impact analysis.
-- ~~Read-only agent tool API~~ ~~Orientation Agent + deterministic summaries~~
-  **Done** (see AGENTS.md). Still missing: the Data-Lineage Investigator and
-  Impact agents (thin deterministic wrappers over existing tool operations).
+- ~~Read-only agent tool API~~ ~~Orientation Agent + summaries~~ ~~Data-Lineage
+  Investigator Agent~~ **All done** (see AGENTS.md). A dedicated Impact agent
+  remains optional future work (the `calculate_change_impact` tool op exists).
 - Unused-package detection; PDF reports. (Deterministic change impact exists as
   the `calculate_change_impact` tool operation; a dedicated Impact agent is future.)
 
@@ -122,7 +122,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 ## Current build health
 
 - **Build:** `mvn clean install` → **BUILD SUCCESS** (13 modules).
-- **Test:** `mvn test` → **86 tests, 0 failures, 0 errors** across model, scanner,
+- **Test:** `mvn test` → **91 tests, 0 failures, 0 errors** across model, scanner,
   parsers, index, analysis, core, tools and agents.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging
   binding on the test classpath); the CLI ships `slf4j-simple` at runtime.
@@ -174,4 +174,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 6. ✅ **Read-only agent tool API** (atlas-tools, `atlas tool`, DB-level read-only). _Done._
 7. ✅ **Deterministic summaries + Repository Orientation Agent** (atlas-agents,
    `atlas orient` / `atlas summarize`). _Done._
-8. **Data-Lineage Investigator Agent** (deterministic mode over trace_data_lineage).
+8. ✅ **Data-Lineage Investigator Agent** (`atlas investigate`). _Done — every
+   numbered addendum milestone (1–10) is now complete._
+9. Next (beyond the addendum plan): config/SQL/build parsers, graph exports,
+   offline search, optional local-AI mode, AgentForge adapter.

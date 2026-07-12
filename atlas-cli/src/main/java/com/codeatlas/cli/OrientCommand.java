@@ -1,7 +1,7 @@
 package com.codeatlas.cli;
 
 import com.codeatlas.agents.OrientationAgent;
-import com.codeatlas.agents.OrientationReport;
+import com.codeatlas.agents.AgentReport;
 import com.codeatlas.tools.AtlasToolApi;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -39,7 +39,7 @@ public final class OrientCommand implements Callable<Integer> {
             return 4;
         }
         try (AtlasToolApi api = AtlasToolApi.open(index)) {
-            OrientationReport report = new OrientationAgent(api).orient();
+            AgentReport report = new OrientationAgent(api).orient();
             System.out.print(format.equalsIgnoreCase("json") ? report.toJson() : report.toText());
             return 0;
         } catch (IllegalStateException | com.codeatlas.index.IndexException e) {
