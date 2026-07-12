@@ -31,7 +31,7 @@ public final class DependencyAnalyzer {
     private static final Set<RelationshipKind> USAGE = EnumSet.of(
             RelationshipKind.CALLS, RelationshipKind.REFERENCES, RelationshipKind.INHERITS,
             RelationshipKind.IMPLEMENTS, RelationshipKind.INSTANTIATES, RelationshipKind.USES,
-            RelationshipKind.DEPENDS_ON);
+            RelationshipKind.DEPENDS_ON, RelationshipKind.INVOKES);
 
     public DependencyAnalysis analyze(SoftwareModel model) {
         Map<String, String> entityToPackage = mapEntitiesToPackages(model);

@@ -42,6 +42,25 @@ public final class Entity {
         public static final String SPEC_LOCATION = "specLocation"; // "file:line" of the specification
         public static final String BODY_LOCATION = "bodyLocation"; // "file:line" of the body
 
+        // Java lineage extraction (populated by the Java parser, consumed by the
+        // lineage analyzer; DTOs stay ordinary type entities with a role, never
+        // duplicate entities).
+        public static final String ROLE = "role";                          // controller|service|repository|mapper-interface|dto-request|dto-response
+        public static final String HTTP_METHOD = "httpMethod";             // GET|POST|...
+        public static final String HTTP_PATH = "httpPath";                 // normalized /a/{b}
+        public static final String HTTP_PATH_UNRESOLVED = "httpPathUnresolved"; // true when not statically resolvable
+        public static final String HTTP_PARAMS = "httpParams";             // "id:path,name:query,..." evidence
+        public static final String REQUEST_BODY_TYPE = "requestBodyType";  // simple source-spelled type
+        public static final String RETURN_TYPE_NORMALIZED = "returnTypeNormalized"; // wrappers unwrapped
+        public static final String PARAM_TYPES = "paramTypes";             // comma-joined source-spelled types
+        public static final String VALIDATED = "validated";                // true when @Valid/@Validated present
+        public static final String JPA_ENTITY = "jpaEntity";               // true on @Entity types
+        public static final String JPA_TABLE_NAME = "jpaTableName";        // explicit @Table(name=...)
+        public static final String SPRING_DATA_REPOSITORY = "springDataRepository"; // true on Spring Data interfaces
+        public static final String MANAGED_ENTITY_TYPE = "managedEntityType"; // first type arg of JpaRepository<...>
+        public static final String DB_OBJECT_TYPE = "dbObjectType";        // table (views/procs are future work)
+        public static final String TRANSFORMATION = "transformation";      // true on detected mapping methods
+
         private Attributes() {
         }
     }
@@ -103,7 +122,8 @@ public final class Entity {
             case EXCEPTION -> "exception";
             case MODULE -> "module";
             case CONFIGURATION -> "config";
-            case DATABASE_OBJECT -> "db";
+            // Only tables are modeled today; views/procedures will refine this token.
+            case DATABASE_OBJECT -> "table";
             case ENDPOINT -> "endpoint";
             case WORKFLOW -> "workflow";
             case DEPENDENCY -> "dependency";

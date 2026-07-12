@@ -72,7 +72,9 @@ concrete technical risks that later milestones must address.
 
 ## Missing (addendum requirements not yet implemented)
 
-- Data lineage as a first-class capability + Java/Ada lineage vertical slices.
+- ~~Java data lineage~~ **Now implemented** (endpoint→…→table with per-edge rule ids,
+  confidence, resolution status, gaps, CLI/JSON/HTML — see DATA_LINEAGE.md).
+  Still missing: the **Ada** lineage vertical slice; config/SQL parser input to lineage.
 - Persistent file-backed H2 as the **default** for ordinary runs.
 - Config (XML/YAML/JSON/properties), database (SQL/DDL), build (`.gpr`, Maven/
   Gradle) and custom-format parsers.
@@ -164,6 +166,6 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 1. ✅ **Analysis-coverage reporting + `ResolutionStatus`** (honest uncertainty). _Done._
 2. ✅ **Stable identifiers + Ada spec/body merge** (resolved risk #1). _Done._
 3. ✅ **Persistent file-backed H2 default + scan versioning + parse reuse** (resolved risk #4). _Done._
-4. **Java data-lineage vertical slice** (endpoint→controller→service→mapper→repo→table).
-5. **Evidence enrichment** on remaining findings (rule ids beyond lineage).
+4. ✅ **Java data-lineage vertical slice** (endpoint→…→table, evidence-backed). _Done._
+5. **Ada data-lineage vertical slice** (input → procedure → transformation → state/output).
 6. **Read-only agent tool API**, then the Orientation and Lineage agents.

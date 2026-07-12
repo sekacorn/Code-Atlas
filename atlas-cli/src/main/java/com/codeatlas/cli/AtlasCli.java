@@ -14,7 +14,7 @@ import picocli.CommandLine.Command;
         mixinStandardHelpOptions = true,
         version = "Code Atlas 0.1.0",
         description = "Offline software intelligence and static analysis.",
-        subcommands = {ScanCommand.class})
+        subcommands = {ScanCommand.class, LineageCommand.class})
 public final class AtlasCli implements Runnable {
 
     @Override

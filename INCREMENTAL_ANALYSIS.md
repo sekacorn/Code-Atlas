@@ -25,9 +25,10 @@ that a fully-reused scan produces an identical model and identical scan id.
 
 ## What is never cached
 
-- **Cross-reference linking** and **analysis** run fresh on every scan over the
-  merged model — they are cheap, deterministic, and depend on the whole
-  repository, not single files.
+- **Cross-reference linking**, **lineage rules** and **analysis** run fresh on
+  every scan over the merged model — they are cheap, deterministic, and depend on
+  the whole repository, not single files. (Lineage edges are then persisted with
+  the scan snapshot, so `atlas lineage` reads them without rescanning.)
 - The `FILE` entities' line statistics are cached in the parse-cache header so
   unchanged files need not even be re-read.
 

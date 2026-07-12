@@ -35,7 +35,9 @@ public final class DeadCodeDetector {
     private static final Set<RelationshipKind> USAGE = EnumSet.of(
             RelationshipKind.CALLS, RelationshipKind.REFERENCES, RelationshipKind.INHERITS,
             RelationshipKind.IMPLEMENTS, RelationshipKind.INSTANTIATES, RelationshipKind.USES,
-            RelationshipKind.IMPORTS, RelationshipKind.RENAMES, RelationshipKind.DEPENDS_ON);
+            RelationshipKind.IMPORTS, RelationshipKind.RENAMES, RelationshipKind.DEPENDS_ON,
+            RelationshipKind.INVOKES, RelationshipKind.CONSUMES, RelationshipKind.PRODUCES,
+            RelationshipKind.VALIDATED_BY, RelationshipKind.MANAGES);
 
     // Entity kinds worth reporting as potentially dead. Packages are intentionally
     // excluded: nothing "uses" a package directly, so flagging them yields false

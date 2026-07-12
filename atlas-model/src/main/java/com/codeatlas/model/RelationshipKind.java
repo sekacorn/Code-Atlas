@@ -36,5 +36,24 @@ public enum RelationshipKind {
     /** An Ada renaming declaration. */
     RENAMES,
     /** A behaviour may raise/throw an exception. */
-    THROWS
+    THROWS,
+
+    // ---- data-lineage kinds (each is produced by a documented ATLAS-LINEAGE rule) ----
+
+    /** A type exposes an HTTP endpoint (controller class → endpoint). */
+    EXPOSES,
+    /** A request or caller invokes a handler/target method (endpoint → handler, method → method). */
+    INVOKES,
+    /** A step takes a data type as input (endpoint/transformation → input DTO). */
+    CONSUMES,
+    /** A step yields a data type as output (transformation/endpoint → output DTO/entity). */
+    PRODUCES,
+    /** A behaviour reads from a data store (method → table). */
+    READS_FROM,
+    /** A behaviour writes to a data store (method → table). */
+    WRITES_TO,
+    /** A data type is validated by a validation step (DTO → validator method). */
+    VALIDATED_BY,
+    /** A repository/DAO manages a persistent entity type (repository → JPA entity). */
+    MANAGES
 }

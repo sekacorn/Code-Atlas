@@ -52,6 +52,15 @@ ada:function:Navigation.Find_Path(Integer)            (one parameter)
 ada:function:Navigation.Find_Path(Integer,Integer)    (overload — distinct)
 ```
 
+### Lineage entities
+```
+java:endpoint:POST:/api/customers/{id}/orders          (verb + normalized path)
+java:endpoint:GET:{unresolved:Paths.BASE}               (non-literal path, kept unresolved)
+sql:table:customer                                      (database table)
+```
+DTOs deliberately remain ordinary `java:type:…` entities with a `role` attribute
+(`dto-request` / `dto-response`) — no duplicate logical entities are created.
+
 ## Normalization
 
 - **Java method/constructor parameters** use the parameter type's source spelling

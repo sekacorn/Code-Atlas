@@ -45,9 +45,14 @@ expectations. It is updated as limitations are addressed.
 - **Dead code is probabilistic.** Findings are candidates with confidence scores,
   not proof. Reflection, DI, external invocation, and dynamic configuration are
   known blind spots and should be assumed possible.
-- **Data lineage is not implemented.** The "data flow & consumers" report is
-  component-coupling only; it does not trace data source → transform → store →
-  consumer with per-edge evidence.
+- **Data lineage covers the Java/Spring vertical slice only.** Endpoint → … →
+  table tracing works with per-edge evidence (see [DATA_LINEAGE.md](DATA_LINEAGE.md)),
+  but: JAX-RS is unsupported; receiver resolution does not follow local variables
+  or chained calls; JDBC/literal-SQL extraction is not implemented; transformation
+  detection is single-parameter; default table naming is an inference; and **Ada
+  data lineage is not implemented**. Runtime reflection, framework proxies,
+  dynamic SQL and external configuration remain blind spots that can add paths
+  Code Atlas cannot see.
 - Unused-package/namespace detection is disabled (it needs import-graph resolution)
   to avoid false positives.
 - Complexity is standard cyclomatic complexity; it does not model cognitive

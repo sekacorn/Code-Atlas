@@ -2,6 +2,7 @@ package com.codeatlas.parser.java;
 
 import com.codeatlas.model.Entity;
 import com.codeatlas.model.EntityKind;
+import com.codeatlas.model.EvidenceKeys;
 import com.codeatlas.model.Relationship;
 import com.codeatlas.model.RelationshipKind;
 import com.codeatlas.model.SourceLocation;
@@ -73,7 +74,8 @@ public final class JavaLanguageParser implements RepositoryParser {
 
     @Override
     public String parserVersion() {
-        return "1.0.0";
+        // 1.1.0: lineage extraction (endpoints, JPA, DI receivers, type flow).
+        return "1.1.0";
     }
 
     @Override
@@ -172,15 +174,32 @@ public final class JavaLanguageParser implements RepositoryParser {
                         : packageName + "." + type.getNameAsString());
         SourceLocation loc = locationOf(type, ctx.file);
 
+        SpringLineageExtractor.TypeLineage lineage = SpringLineageExtractor.extractType(type);
+
         boolean exposed = isPublic(type) || hasExposingAnnotation(type.getAnnotations());
-        Entity typeEntity = Entity.builder(kind, type.getNameAsString())
+        Entity.Builder tb = Entity.builder(kind, type.getNameAsString())
                 .qualifiedName(qn)
                 .language(LANGUAGE)
                 .location(loc)
                 .attribute(Entity.Attributes.VISIBILITY, visibilityOf(type))
                 .attribute(Entity.Attributes.EXTERNALLY_EXPOSED, exposed)
-                .attribute(Entity.Attributes.LINES_OF_CODE, loc != null ? loc.lineSpan() : 0)
-                .build();
+                .attribute(Entity.Attributes.LINES_OF_CODE, loc != null ? loc.lineSpan() : 0);
+        if (lineage.role() != null) {
+            tb.attribute(Entity.Attributes.ROLE, lineage.role());
+        }
+        if (lineage.jpaEntity()) {
+            tb.attribute(Entity.Attributes.JPA_ENTITY, true);
+            if (lineage.tableName() != null && !lineage.tableName().unresolved()) {
+                tb.attribute(Entity.Attributes.JPA_TABLE_NAME, lineage.tableName().path());
+            }
+        }
+        if (lineage.springDataRepository()) {
+            tb.attribute(Entity.Attributes.SPRING_DATA_REPOSITORY, true);
+            if (lineage.managedEntityType() != null) {
+                tb.attribute(Entity.Attributes.MANAGED_ENTITY_TYPE, lineage.managedEntityType());
+            }
+        }
+        Entity typeEntity = tb.build();
         ctx.out.entity(typeEntity);
 
         // Inheritance / realisation (unresolved by simple/qualified name).
@@ -200,7 +219,8 @@ public final class JavaLanguageParser implements RepositoryParser {
         // Members.
         for (BodyDeclaration<?> member : type.getMembers()) {
             if (member instanceof MethodDeclaration md) {
-                processCallable(md, typeEntity, qn, ctx, EntityKind.METHOD);
+                Entity method = processCallable(md, typeEntity, qn, ctx, EntityKind.METHOD);
+                emitEndpoint(md, typeEntity, method, lineage.basePath(), ctx);
             } else if (member instanceof ConstructorDeclaration cd) {
                 processCallable(cd, typeEntity, qn, ctx, EntityKind.CONSTRUCTOR);
             } else if (member instanceof FieldDeclaration fd) {
@@ -215,8 +235,8 @@ public final class JavaLanguageParser implements RepositoryParser {
         return typeEntity;
     }
 
-    private void processCallable(CallableDeclaration<?> callable, Entity owner, String ownerQn,
-                                 Context ctx, EntityKind kind) {
+    private Entity processCallable(CallableDeclaration<?> callable, Entity owner, String ownerQn,
+                                   Context ctx, EntityKind kind) {
         String params = callable.getParameters().stream()
                 .map(p -> p.getType().asString().replaceAll("\\s+", ""))
                 .collect(Collectors.joining(","));
@@ -247,8 +267,15 @@ public final class JavaLanguageParser implements RepositoryParser {
                 .attribute(Entity.Attributes.EXTERNALLY_EXPOSED, exposed)
                 .attribute(Entity.Attributes.CYCLOMATIC_COMPLEXITY, complexity)
                 .attribute(Entity.Attributes.LINES_OF_CODE, loc != null ? loc.lineSpan() : 0);
+        if (!params.isEmpty()) {
+            b.attribute(Entity.Attributes.PARAM_TYPES, params);
+        }
         if (callable instanceof MethodDeclaration md) {
             b.attribute(Entity.Attributes.RETURN_TYPE, md.getType().asString());
+            String normalized = SpringLineageExtractor.normalizeReturnType(md.getType());
+            if (!normalized.equals("void")) {
+                b.attribute(Entity.Attributes.RETURN_TYPE_NORMALIZED, normalized);
+            }
         }
         Entity entity = b.build();
         ctx.out.entity(entity);
@@ -260,6 +287,63 @@ public final class JavaLanguageParser implements RepositoryParser {
             emitTypeReference(owner, md.getType().asString(), ctx);
         }
         callable.getParameters().forEach(p -> emitTypeReference(owner, p.getType().asString(), ctx));
+        return entity;
+    }
+
+    /**
+     * Emits an ENDPOINT entity plus its discovery edges when {@code method} carries
+     * an HTTP-verb mapping annotation. The endpoint's identity is its verb and
+     * normalized path ({@code java:endpoint:POST:/customers}); an unresolved path
+     * keeps a deterministic unresolved marker instead of a guessed value.
+     */
+    private void emitEndpoint(MethodDeclaration md, Entity owner, Entity handler,
+                              SpringLineageExtractor.PathValue basePath, Context ctx) {
+        var info = SpringLineageExtractor.extractEndpoint(md, basePath).orElse(null);
+        if (info == null) {
+            return;
+        }
+        SourceLocation loc = locationOf(md, ctx.file);
+        Entity.Builder eb = Entity.builder(EntityKind.ENDPOINT, info.verb() + " " + info.path())
+                .qualifiedName(info.verb() + ":" + info.path())
+                .language(LANGUAGE)
+                .location(loc)
+                .attribute(Entity.Attributes.HTTP_METHOD, info.verb())
+                .attribute(Entity.Attributes.HTTP_PATH, info.path())
+                .attribute(Entity.Attributes.EXTERNALLY_EXPOSED, true);
+        if (info.pathUnresolved()) {
+            eb.attribute(Entity.Attributes.HTTP_PATH_UNRESOLVED, true);
+        }
+        if (info.requestBodyType() != null) {
+            eb.attribute(Entity.Attributes.REQUEST_BODY_TYPE, info.requestBodyType());
+        }
+        if (info.returnTypeNormalized() != null && !info.returnTypeNormalized().equals("void")) {
+            eb.attribute(Entity.Attributes.RETURN_TYPE_NORMALIZED, info.returnTypeNormalized());
+        }
+        if (info.httpParams() != null) {
+            eb.attribute(Entity.Attributes.HTTP_PARAMS, info.httpParams());
+        }
+        if (info.validated()) {
+            eb.attribute(Entity.Attributes.VALIDATED, true);
+        }
+        Entity endpoint = eb.build();
+        ctx.out.entity(endpoint);
+
+        ctx.out.relationship(Relationship.builder(RelationshipKind.EXPOSES, owner.id(), endpoint.id())
+                .status(com.codeatlas.model.ResolutionStatus.DISCOVERED)
+                .location(loc)
+                .attribute(EvidenceKeys.RULE_ID, "ATLAS-LINEAGE-ENDPOINT-001")
+                .attribute(EvidenceKeys.RULE_VERSION, "1")
+                .attribute(EvidenceKeys.ANALYZER_ID, LANGUAGE + "/" + parserVersion())
+                .attribute(EvidenceKeys.CONFIDENCE, "1.00")
+                .build());
+        ctx.out.relationship(Relationship.builder(RelationshipKind.INVOKES, endpoint.id(), handler.id())
+                .status(com.codeatlas.model.ResolutionStatus.DISCOVERED)
+                .location(loc)
+                .attribute(EvidenceKeys.RULE_ID, "ATLAS-LINEAGE-ENDPOINT-001")
+                .attribute(EvidenceKeys.RULE_VERSION, "1")
+                .attribute(EvidenceKeys.ANALYZER_ID, LANGUAGE + "/" + parserVersion())
+                .attribute(EvidenceKeys.CONFIDENCE, "1.00")
+                .build());
     }
 
     private void processField(FieldDeclaration fd, Entity owner, String ownerQn, Context ctx) {
@@ -307,12 +391,14 @@ public final class JavaLanguageParser implements RepositoryParser {
             if (callerId == null) {
                 continue;
             }
-            ctx.out.relationship(Relationship.builder(RelationshipKind.CALLS,
+            Relationship.Builder rb = Relationship.builder(RelationshipKind.CALLS,
                             callerId, call.getNameAsString())
                     .resolved(false)
-                    .attribute("callName", call.getNameAsString())
-                    .attribute("argCount", Integer.toString(call.getArguments().size()))
-                    .build());
+                    .location(locationOf(call, ctx.file))
+                    .attribute(EvidenceKeys.CALL_NAME, call.getNameAsString())
+                    .attribute(EvidenceKeys.ARG_COUNT, Integer.toString(call.getArguments().size()));
+            receiverNameOf(call).ifPresent(r -> rb.attribute(EvidenceKeys.RECEIVER_NAME, r));
+            ctx.out.relationship(rb.build());
         }
         for (ObjectCreationExpr creation : cu.findAll(ObjectCreationExpr.class)) {
             String callerId = enclosingCallableId(creation, ctx);
@@ -325,6 +411,27 @@ public final class JavaLanguageParser implements RepositoryParser {
                     .attribute("typeName", creation.getType().getNameWithScope())
                     .build());
         }
+    }
+
+    /**
+     * The simple receiver of a call, when it is a plain name: {@code svc.run()} →
+     * {@code svc}, {@code this.svc.run()} → {@code svc}, {@code Types.of()} →
+     * {@code Types}. Chained or complex receivers yield empty — the lineage
+     * analyzer treats those conservatively rather than guessing.
+     */
+    private static Optional<String> receiverNameOf(MethodCallExpr call) {
+        var scope = call.getScope().orElse(null);
+        if (scope == null) {
+            return Optional.empty(); // implicit this: same-owner call
+        }
+        if (scope instanceof com.github.javaparser.ast.expr.NameExpr name) {
+            return Optional.of(name.getNameAsString());
+        }
+        if (scope instanceof com.github.javaparser.ast.expr.FieldAccessExpr field
+                && field.getScope() instanceof com.github.javaparser.ast.expr.ThisExpr) {
+            return Optional.of(field.getNameAsString());
+        }
+        return Optional.empty();
     }
 
     private String enclosingCallableId(Node node, Context ctx) {

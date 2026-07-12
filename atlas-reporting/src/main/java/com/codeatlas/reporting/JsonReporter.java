@@ -5,6 +5,9 @@ import com.codeatlas.analysis.ComplexityHotspot;
 import com.codeatlas.analysis.ComponentDependency;
 import com.codeatlas.analysis.DeadCodeCandidate;
 import com.codeatlas.analysis.RepositoryMetrics;
+import com.codeatlas.analysis.lineage.LineageSummary;
+
+import java.util.Locale;
 
 import java.util.StringJoiner;
 
@@ -37,6 +40,7 @@ public final class JsonReporter {
         sb.append("  \"complexityHotspots\": ").append(complexity(data)).append(",\n");
         sb.append("  \"deadCode\": ").append(deadCode(data)).append(",\n");
         sb.append("  \"dependencies\": ").append(dependencies(data)).append(",\n");
+        sb.append("  \"lineage\": ").append(lineage(data.analysis().lineage())).append(",\n");
         sb.append("  \"diagnostics\": ").append(diagnostics(data)).append("\n");
         sb.append("}\n");
         return sb.toString();
@@ -103,6 +107,56 @@ public final class JsonReporter {
                     + ", \"location\": " + Json.quote(c.location().toString()) + "}");
         }
         return arr.toString();
+    }
+
+    private String lineage(LineageSummary s) {
+        StringBuilder sb = new StringBuilder("{\n");
+        StringJoiner endpoints = new StringJoiner(",\n      ", "[\n      ", "\n    ]");
+        for (LineageSummary.EndpointView e : s.endpoints()) {
+            endpoints.add("{\"stableId\": " + Json.quote(e.stableId())
+                    + ", \"method\": " + Json.quote(e.httpMethod())
+                    + ", \"path\": " + Json.quote(e.path())
+                    + ", \"handler\": " + Json.quote(e.handler())
+                    + ", \"pathUnresolved\": " + e.pathUnresolved()
+                    + ", \"validated\": " + e.validated() + "}");
+        }
+        sb.append("    \"endpoints\": ").append(s.endpoints().isEmpty() ? "[]" : endpoints).append(",\n");
+
+        StringJoiner stores = new StringJoiner(",\n      ", "[\n      ", "\n    ]");
+        for (LineageSummary.StoreView v : s.stores()) {
+            stores.add("{\"stableId\": " + Json.quote(v.stableId())
+                    + ", \"name\": " + Json.quote(v.name())
+                    + ", \"mappedFrom\": " + Json.quote(v.mappedFromEntity())
+                    + ", \"nameInferred\": " + v.nameInferred() + "}");
+        }
+        sb.append("    \"dataStores\": ").append(s.stores().isEmpty() ? "[]" : stores).append(",\n");
+
+        StringJoiner traces = new StringJoiner(",\n      ", "[\n      ", "\n    ]");
+        for (LineageSummary.EndpointTrace t : s.traces()) {
+            StringJoiner steps = new StringJoiner(", ", "[", "]");
+            t.steps().forEach(x -> steps.add(Json.quote(x)));
+            traces.add("{\"endpoint\": " + Json.quote(t.endpointId())
+                    + ", \"reachesStore\": " + t.reachesStore()
+                    + ", \"gapCount\": " + t.gapCount()
+                    + ", \"confidence\": " + String.format(Locale.ROOT, "%.2f", t.minConfidence())
+                    + ", \"steps\": " + steps + "}");
+        }
+        sb.append("    \"traces\": ").append(s.traces().isEmpty() ? "[]" : traces).append(",\n");
+
+        var c = s.coverage();
+        sb.append("    \"coverage\": {")
+          .append("\"endpointsDetected\": ").append(c.endpointsDetected())
+          .append(", \"endpointsWithStorePath\": ").append(c.endpointsWithStorePath())
+          .append(", \"repositoriesDetected\": ").append(c.repositoriesDetected())
+          .append(", \"repositoriesMappedToEntities\": ").append(c.repositoriesMappedToEntities())
+          .append(", \"entitiesMappedToTables\": ").append(c.entitiesMappedToTables())
+          .append(", \"resolvedEdges\": ").append(c.resolvedEdges())
+          .append(", \"inferredEdges\": ").append(c.inferredEdges())
+          .append(", \"unresolvedEdges\": ").append(c.unresolvedEdges())
+          .append(", \"completePathsWithinEvidence\": ").append(c.completePaths())
+          .append(", \"partialPaths\": ").append(c.partialPaths())
+          .append("}\n  }");
+        return sb.toString();
     }
 
     private String diagnostics(ReportData data) {

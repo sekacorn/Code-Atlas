@@ -6,6 +6,7 @@ import com.codeatlas.analysis.ComplexityHotspot;
 import com.codeatlas.analysis.ComponentDependency;
 import com.codeatlas.analysis.DeadCodeCandidate;
 import com.codeatlas.analysis.RepositoryMetrics;
+import com.codeatlas.analysis.lineage.LineageSummary;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -41,6 +42,7 @@ public final class HtmlReporter {
         dashboard(sb, m, a);
         coverageSection(sb, data.coverage());
         languageDistribution(sb, m);
+        lineageSection(sb, a.lineage());
         complexitySection(sb, a);
         deadCodeSection(sb, a);
         dependencySection(sb, a);
@@ -119,6 +121,77 @@ public final class HtmlReporter {
               .append("<td class=\"num\">").append(e.getValue()).append(" files</td></tr>");
         }
         sb.append("</table></section>");
+    }
+
+    private void lineageSection(StringBuilder sb, LineageSummary s) {
+        if (s.endpoints().isEmpty() && s.stores().isEmpty()) {
+            return; // no Java lineage evidence in this repository — omit the section
+        }
+        sb.append("<section><h2>Data lineage (Java)</h2>")
+          .append("<p class=\"note\">Deterministic, evidence-backed paths from HTTP endpoints toward data stores. ")
+          .append("\"Complete\" means complete within analyzed evidence — unresolved segments are listed, never hidden.</p>");
+
+        sb.append("<h3>Endpoints</h3>");
+        sb.append("<table><thead><tr><th>Endpoint</th><th>Handler</th><th>Validated</th><th>Downstream</th></tr></thead><tbody>");
+        for (LineageSummary.EndpointView e : s.endpoints()) {
+            LineageSummary.EndpointTrace trace = s.traces().stream()
+                    .filter(t -> t.endpointId().equals(e.stableId())).findFirst().orElse(null);
+            String downstream = trace == null ? "—"
+                    : trace.reachesStore() ? "reaches data store (confidence " + confFmt(trace.minConfidence()) + ")"
+                    : "partial — no store reached";
+            sb.append("<tr><td>").append(esc(e.httpMethod() + " " + e.path()))
+              .append(e.pathUnresolved() ? " <span class=\"badge r-med\">PATH UNRESOLVED</span>" : "")
+              .append("</td><td class=\"loc\">").append(esc(e.handler())).append("</td>")
+              .append("<td>").append(e.validated() ? "yes" : "—").append("</td>")
+              .append("<td>").append(esc(downstream)).append("</td></tr>");
+        }
+        sb.append("</tbody></table>");
+
+        if (!s.stores().isEmpty()) {
+            sb.append("<h3>Data stores</h3>");
+            sb.append("<table><thead><tr><th>Table</th><th>Mapped from</th><th>Naming</th></tr></thead><tbody>");
+            for (LineageSummary.StoreView v : s.stores()) {
+                sb.append("<tr><td>").append(esc(v.name())).append("</td>")
+                  .append("<td class=\"loc\">").append(esc(v.mappedFromEntity())).append("</td>")
+                  .append("<td>").append(v.nameInferred()
+                          ? riskBadge("MODERATE") + " inferred default name" : "explicit @Table").append("</td></tr>");
+            }
+            sb.append("</tbody></table>");
+        }
+
+        sb.append("<h3>Representative paths</h3>");
+        for (LineageSummary.EndpointTrace t : s.traces()) {
+            if (t.steps().isEmpty()) {
+                continue;
+            }
+            sb.append("<div class=\"lineage-path\">");
+            for (String step : t.steps()) {
+                sb.append("<div>").append(esc(step)).append("</div>");
+            }
+            if (t.gapCount() > 0) {
+                sb.append("<div class=\"gap\">").append(t.gapCount())
+                  .append(" unresolved segment(s) — see report.json lineage gaps</div>");
+            }
+            sb.append("</div>");
+        }
+
+        var c = s.coverage();
+        sb.append("<h3>Lineage coverage</h3><table class=\"cov\"><tbody>");
+        covRow(sb, "Endpoints detected", format(c.endpointsDetected()));
+        covRow(sb, "Endpoints with a store path", format(c.endpointsWithStorePath()));
+        covRow(sb, "Repositories detected", format(c.repositoriesDetected()));
+        covRow(sb, "Repositories mapped to entities", format(c.repositoriesMappedToEntities()));
+        covRow(sb, "Entities mapped to tables", format(c.entitiesMappedToTables()));
+        covRow(sb, "Resolved lineage edges", format(c.resolvedEdges()));
+        covRow(sb, "Inferred lineage edges", format(c.inferredEdges()));
+        covRow(sb, "Unresolved lineage edges", format(c.unresolvedEdges()));
+        covRow(sb, "Complete paths (within evidence)", format(c.completePaths()));
+        covRow(sb, "Partial paths", format(c.partialPaths()));
+        sb.append("</tbody></table></section>");
+    }
+
+    private static String confFmt(double v) {
+        return String.format(java.util.Locale.ROOT, "%.2f", v);
     }
 
     private void complexitySection(StringBuilder sb, AnalysisResult a) {
@@ -275,6 +348,9 @@ public final class HtmlReporter {
                 + ".banner{margin:20px 0 4px;padding:12px 16px;border-radius:10px;font-size:13px;background:rgba(224,162,58,.14);border:1px solid rgba(224,162,58,.4);color:#e7c07f}"
                 + ".banner.ok{background:rgba(63,185,112,.12);border-color:rgba(63,185,112,.35);color:#8fd9ae}"
                 + "table.cov{max-width:460px}table.cov td:first-child{color:var(--mut)}"
+                + ".lineage-path{background:var(--panel);border:1px solid var(--line);border-radius:10px;"
+                + "padding:12px 16px;margin:10px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}"
+                + ".lineage-path div{padding:1px 0}.lineage-path .gap{color:#e7c07f;margin-top:6px;font-family:inherit}"
                 + "footer{max-width:1100px;margin:0 auto;padding:20px 32px 40px;color:var(--mut);font-size:12px;border-top:1px solid var(--line)}"
                 + "@media(max-width:640px){.twocol{grid-template-columns:1fr}}"
                 + "</style>";

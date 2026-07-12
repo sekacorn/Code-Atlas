@@ -1,5 +1,7 @@
 package com.codeatlas.analysis;
 
+import com.codeatlas.analysis.lineage.LineageSummary;
+
 import java.util.List;
 
 /**
@@ -9,7 +11,8 @@ import java.util.List;
 public record AnalysisResult(RepositoryMetrics metrics,
                              List<ComplexityHotspot> complexityHotspots,
                              List<DeadCodeCandidate> deadCode,
-                             DependencyAnalysis dependencies) {
+                             DependencyAnalysis dependencies,
+                             LineageSummary lineage) {
 
     /** Percentage of candidate entities flagged as probable dead code (headline stat). */
     public int deadCodePercent() {

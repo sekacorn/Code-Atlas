@@ -77,6 +77,17 @@ reference remained unresolved or ambiguous. This label appears in the CLI summar
 a banner at the top of the HTML report, and as `scanStatus` in the JSON. Users are
 never allowed to mistake incomplete analysis for complete coverage.
 
+## Lineage edge evidence
+
+Every data-lineage relationship carries structured evidence attributes
+(`EvidenceKeys`): the **rule id** and **rule version** that produced it, the
+**analyzer id and version** that ran the rule, a fixed rule-derived **confidence**
+in [0,1], **inferred/ambiguous** flags, plus the edge's resolution status and
+source location. Rule ids and confidence values are catalogued in
+[DATA_LINEAGE.md](DATA_LINEAGE.md). Unresolvable references become explicit
+`UNRESOLVED` edges (rule `ATLAS-LINEAGE-UNRESOLVED-001`) — kept and reported as
+gaps, never discarded.
+
 ## Dead-code confidence
 
 Dead-code findings are **probable, never absolute**. Each candidate lists the

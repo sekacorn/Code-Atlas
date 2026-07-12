@@ -19,6 +19,8 @@ function. AI, if ever enabled, is an optional explanation layer only.
 - [CURRENT_STATE.md](CURRENT_STATE.md) — factual assessment of what is implemented, build health, and technical risks.
 - [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md) — source evidence, resolution status, and analysis coverage.
 - [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) — the deterministic id grammar, Ada spec/body merge, and collisions.
+- [DATA_LINEAGE.md](DATA_LINEAGE.md) — Java data lineage: rules, confidence, CLI queries, JSON format, gaps.
+- [PERSISTENCE.md](PERSISTENCE.md) / [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) — file-backed index, scan versioning, parse reuse.
 - [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) — what the tool does not (yet) do, and what it does not claim.
 
 ## Status — Milestone 1 (Java + Ada vertical slice)
@@ -47,6 +49,7 @@ and who consumes it.**
 | **Analysis** | Repository metrics (files, LOC, comments, language distribution, entity counts), complexity hotspots with risk bands, **dead-code detection with an evidence + confidence model**, package coupling & circular-dependency detection |
 | **Local index** | **File-backed H2 by default** (`~/.code-atlas/index/…`, never inside the analyzed repo) with scan versioning, atomic snapshot replacement (a failed scan never clobbers the last good one), and full relationship metadata — see [PERSISTENCE.md](PERSISTENCE.md) |
 | **Incremental scanning** | Per-file SHA-256 change detection plus **conservative reuse of unchanged parser results** (same content + same parser version), verified byte-identical to re-parsing — see [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) |
+| **Java data lineage** | Deterministic endpoint→controller→service→transformation→repository→**table** tracing with a rule id, confidence and source evidence on every edge; ambiguous DI and unresolvable calls surface as explicit gaps; `atlas lineage` queries the persisted index up- or downstream — see [DATA_LINEAGE.md](DATA_LINEAGE.md) |
 | **Analysis coverage** | Every scan reports files analyzed/skipped/failed and reference resolution rate, and is labelled **PARTIAL** when coverage is incomplete — incomplete analysis is never presented as complete |
 | **Resolution status** | Relationships expose `DISCOVERED` / `RESOLVED` / `INFERRED` / `UNRESOLVED` so uncertainty is explicit (see [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md)) |
 | **Reports** | Self-contained **HTML** dashboard (offline, no CDN/scripts), plus **JSON** and **CSV** |
@@ -77,7 +80,14 @@ This produces a self-contained runnable jar at `atlas-cli/target/atlas.jar`.
 java -jar atlas-cli/target/atlas.jar scan /path/to/repo --out ./atlas-report
 ```
 
-Then open `atlas-report/report.html` in any browser (works offline).
+Then open `atlas-report/report.html` in any browser (works offline). The scan
+persists a file-backed index under `~/.code-atlas/index/`, which lineage queries
+read without rescanning:
+
+```bash
+java -jar atlas-cli/target/atlas.jar lineage "POST /customers" --downstream --repo /path/to/repo
+java -jar atlas-cli/target/atlas.jar lineage sql:table:customer --upstream --repo /path/to/repo
+```
 
 ### Options
 
