@@ -120,10 +120,11 @@ public final class ScanCommand implements Callable<Integer> {
         System.out.printf("  Complexity hotspots . %,d%n", a.complexityHotspots().size());
         System.out.printf("  Dead-code candidates  %,d (%d%% of units)%n", a.deadCode().size(), a.deadCodePercent());
         var lin = a.lineage().coverage();
-        if (lin.endpointsDetected() > 0 || lin.entitiesMappedToTables() > 0) {
-            System.out.printf("  Lineage ............. %d endpoint(s), %d with a store path, %d table(s)%n",
+        if (lin.endpointsDetected() > 0 || lin.entitiesMappedToTables() > 0
+                || !a.lineage().sources().isEmpty()) {
+            System.out.printf("  Lineage ............. %d endpoint(s), %d with a store path, %d table(s), %d source/sink(s)%n",
                     lin.endpointsDetected(), lin.endpointsWithStorePath(),
-                    a.lineage().stores().size());
+                    a.lineage().stores().size(), a.lineage().sources().size());
         }
         System.out.println(bar);
         var cov = result.coverage();

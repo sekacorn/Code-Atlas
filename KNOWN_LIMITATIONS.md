@@ -45,14 +45,16 @@ expectations. It is updated as limitations are addressed.
 - **Dead code is probabilistic.** Findings are candidates with confidence scores,
   not proof. Reflection, DI, external invocation, and dynamic configuration are
   known blind spots and should be assumed possible.
-- **Data lineage covers the Java/Spring vertical slice only.** Endpoint → … →
-  table tracing works with per-edge evidence (see [DATA_LINEAGE.md](DATA_LINEAGE.md)),
-  but: JAX-RS is unsupported; receiver resolution does not follow local variables
-  or chained calls; JDBC/literal-SQL extraction is not implemented; transformation
-  detection is single-parameter; default table naming is an inference; and **Ada
-  data lineage is not implemented**. Runtime reflection, framework proxies,
-  dynamic SQL and external configuration remain blind spots that can add paths
-  Code Atlas cannot see.
+- **Data lineage covers two vertical slices: Java/Spring and Ada.** Java:
+  endpoint → … → table; Ada: console input → procedure → transformation → package
+  state → output, each with per-edge evidence (see [DATA_LINEAGE.md](DATA_LINEAGE.md)).
+  Java limits: JAX-RS unsupported; receiver resolution does not follow local
+  variables or chained calls; JDBC/literal-SQL extraction not implemented;
+  single-parameter transformations; default table naming is an inference. Ada
+  limits: package-level state only; unqualified cross-package reads and inner-block
+  shadowing are blind spots; overloads stay ambiguous (no argument-type matching);
+  no Ada database bindings. Runtime reflection, framework proxies, dynamic SQL and
+  external configuration remain blind spots that can add paths Code Atlas cannot see.
 - Unused-package/namespace detection is disabled (it needs import-graph resolution)
   to avoid false positives.
 - Complexity is standard cyclomatic complexity; it does not model cognitive

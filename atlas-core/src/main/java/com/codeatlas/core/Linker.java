@@ -63,12 +63,17 @@ public final class Linker {
             if (r.resolved()) {
                 continue;
             }
+            // Kinds outside this switch (e.g. parser state candidates) are handled
+            // by their own analyzers and must not skew the linker's reference stats.
             List<Entity> targets = switch (r.kind()) {
                 case CALLS -> resolveCall(r, callablesByName);
                 case INHERITS, IMPLEMENTS, INSTANTIATES, IMPORTS, RENAMES, REFERENCES ->
                         resolveType(r, typesByName, byQualifiedName);
-                default -> List.of();
+                default -> null;
             };
+            if (targets == null) {
+                continue;
+            }
             if (targets.isEmpty()) {
                 refUnresolved++;
                 continue;

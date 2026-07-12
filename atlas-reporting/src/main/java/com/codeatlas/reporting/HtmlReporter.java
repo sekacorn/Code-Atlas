@@ -124,28 +124,42 @@ public final class HtmlReporter {
     }
 
     private void lineageSection(StringBuilder sb, LineageSummary s) {
-        if (s.endpoints().isEmpty() && s.stores().isEmpty()) {
-            return; // no Java lineage evidence in this repository — omit the section
+        if (s.endpoints().isEmpty() && s.stores().isEmpty() && s.sources().isEmpty()) {
+            return; // no lineage evidence in this repository — omit the section
         }
-        sb.append("<section><h2>Data lineage (Java)</h2>")
-          .append("<p class=\"note\">Deterministic, evidence-backed paths from HTTP endpoints toward data stores. ")
+        sb.append("<section><h2>Data lineage</h2>")
+          .append("<p class=\"note\">Deterministic, evidence-backed paths from inputs (HTTP endpoints, console sources) ")
+          .append("toward data stores, package state and outputs. ")
           .append("\"Complete\" means complete within analyzed evidence — unresolved segments are listed, never hidden.</p>");
 
-        sb.append("<h3>Endpoints</h3>");
-        sb.append("<table><thead><tr><th>Endpoint</th><th>Handler</th><th>Validated</th><th>Downstream</th></tr></thead><tbody>");
-        for (LineageSummary.EndpointView e : s.endpoints()) {
-            LineageSummary.EndpointTrace trace = s.traces().stream()
-                    .filter(t -> t.endpointId().equals(e.stableId())).findFirst().orElse(null);
-            String downstream = trace == null ? "—"
-                    : trace.reachesStore() ? "reaches data store (confidence " + confFmt(trace.minConfidence()) + ")"
-                    : "partial — no store reached";
-            sb.append("<tr><td>").append(esc(e.httpMethod() + " " + e.path()))
-              .append(e.pathUnresolved() ? " <span class=\"badge r-med\">PATH UNRESOLVED</span>" : "")
-              .append("</td><td class=\"loc\">").append(esc(e.handler())).append("</td>")
-              .append("<td>").append(e.validated() ? "yes" : "—").append("</td>")
-              .append("<td>").append(esc(downstream)).append("</td></tr>");
+        if (!s.endpoints().isEmpty()) {
+            sb.append("<h3>Endpoints</h3>");
+            sb.append("<table><thead><tr><th>Endpoint</th><th>Handler</th><th>Validated</th><th>Downstream</th></tr></thead><tbody>");
+            for (LineageSummary.EndpointView e : s.endpoints()) {
+                LineageSummary.EndpointTrace trace = s.traces().stream()
+                        .filter(t -> t.endpointId().equals(e.stableId())).findFirst().orElse(null);
+                String downstream = trace == null ? "—"
+                        : trace.reachesStore() ? "reaches data store (confidence " + confFmt(trace.minConfidence()) + ")"
+                        : "partial — no store reached";
+                sb.append("<tr><td>").append(esc(e.httpMethod() + " " + e.path()))
+                  .append(e.pathUnresolved() ? " <span class=\"badge r-med\">PATH UNRESOLVED</span>" : "")
+                  .append("</td><td class=\"loc\">").append(esc(e.handler())).append("</td>")
+                  .append("<td>").append(e.validated() ? "yes" : "—").append("</td>")
+                  .append("<td>").append(esc(downstream)).append("</td></tr>");
+            }
+            sb.append("</tbody></table>");
         }
-        sb.append("</tbody></table>");
+
+        if (!s.sources().isEmpty()) {
+            sb.append("<h3>Input sources &amp; output sinks</h3>");
+            sb.append("<table><thead><tr><th>Name</th><th>Direction</th><th>Description</th></tr></thead><tbody>");
+            for (LineageSummary.IoView v : s.sources()) {
+                sb.append("<tr><td>").append(esc(v.name())).append("</td>")
+                  .append("<td>").append(esc(v.direction())).append("</td>")
+                  .append("<td class=\"loc\">").append(esc(v.description())).append("</td></tr>");
+            }
+            sb.append("</tbody></table>");
+        }
 
         if (!s.stores().isEmpty()) {
             sb.append("<h3>Data stores</h3>");
@@ -160,20 +174,8 @@ public final class HtmlReporter {
         }
 
         sb.append("<h3>Representative paths</h3>");
-        for (LineageSummary.EndpointTrace t : s.traces()) {
-            if (t.steps().isEmpty()) {
-                continue;
-            }
-            sb.append("<div class=\"lineage-path\">");
-            for (String step : t.steps()) {
-                sb.append("<div>").append(esc(step)).append("</div>");
-            }
-            if (t.gapCount() > 0) {
-                sb.append("<div class=\"gap\">").append(t.gapCount())
-                  .append(" unresolved segment(s) — see report.json lineage gaps</div>");
-            }
-            sb.append("</div>");
-        }
+        renderTraces(sb, s.traces());
+        renderTraces(sb, s.sourceTraces());
 
         var c = s.coverage();
         sb.append("<h3>Lineage coverage</h3><table class=\"cov\"><tbody>");
@@ -188,6 +190,23 @@ public final class HtmlReporter {
         covRow(sb, "Complete paths (within evidence)", format(c.completePaths()));
         covRow(sb, "Partial paths", format(c.partialPaths()));
         sb.append("</tbody></table></section>");
+    }
+
+    private void renderTraces(StringBuilder sb, java.util.List<LineageSummary.EndpointTrace> traces) {
+        for (LineageSummary.EndpointTrace t : traces) {
+            if (t.steps().isEmpty()) {
+                continue;
+            }
+            sb.append("<div class=\"lineage-path\">");
+            for (String step : t.steps()) {
+                sb.append("<div>").append(esc(step)).append("</div>");
+            }
+            if (t.gapCount() > 0) {
+                sb.append("<div class=\"gap\">").append(t.gapCount())
+                  .append(" unresolved segment(s) — see report.json lineage gaps</div>");
+            }
+            sb.append("</div>");
+        }
     }
 
     private static String confFmt(double v) {

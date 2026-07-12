@@ -57,6 +57,9 @@ ada:function:Navigation.Find_Path(Integer,Integer)    (overload — distinct)
 java:endpoint:POST:/api/customers/{id}/orders          (verb + normalized path)
 java:endpoint:GET:{unresolved:Paths.BASE}               (non-literal path, kept unresolved)
 sql:table:customer                                      (database table)
+ada:variable:Mission_Data.Current_Route                 (package state)
+ada:source:console_input                                (data source — Ada.Text_IO input)
+ada:sink:console_output                                 (data sink — Ada.Text_IO output)
 ```
 DTOs deliberately remain ordinary `java:type:…` entities with a `role` attribute
 (`dto-request` / `dto-response`) — no duplicate logical entities are created.

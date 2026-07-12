@@ -25,7 +25,11 @@ public final class LineageSummarizer {
                 .sorted(Comparator.comparing(Entity::id)).toList();
         List<Entity> tables = model.entitiesOfKind(EntityKind.DATABASE_OBJECT).stream()
                 .sorted(Comparator.comparing(Entity::id)).toList();
-        if (endpoints.isEmpty() && tables.isEmpty()) {
+        List<Entity> ioSources = model.entitiesOfKind(EntityKind.DATA_SOURCE).stream()
+                .sorted(Comparator.comparing(Entity::id)).toList();
+        List<Entity> ioSinks = model.entitiesOfKind(EntityKind.DATA_SINK).stream()
+                .sorted(Comparator.comparing(Entity::id)).toList();
+        if (endpoints.isEmpty() && tables.isEmpty() && ioSources.isEmpty() && ioSinks.isEmpty()) {
             return LineageSummary.empty();
         }
 
@@ -101,10 +105,78 @@ public final class LineageSummarizer {
             }
         }
 
-        return new LineageSummary(endpointViews, storeViews, traces,
+        List<LineageSummary.IoView> ioViews = new ArrayList<>();
+        for (Entity s : ioSources) {
+            ioViews.add(new LineageSummary.IoView(s.id(), s.name(), LineageSummary.IoView.SOURCE,
+                    s.attribute("description").orElse("")));
+        }
+        for (Entity s : ioSinks) {
+            ioViews.add(new LineageSummary.IoView(s.id(), s.name(), LineageSummary.IoView.SINK,
+                    s.attribute("description").orElse("")));
+        }
+
+        return new LineageSummary(endpointViews, storeViews, ioViews, traces,
+                sourceTraces(model, ioSources),
                 new LineageSummary.Coverage(endpoints.size(), endpointsWithStorePath,
                         repositories, repositoriesMapped, countMappedEntities(model),
                         resolvedEdges, inferredEdges, unresolvedEdges, completePaths, partialPaths));
+    }
+
+    /**
+     * One representative trace per input source: the data flows from the source
+     * into each reader, then follows the reader's downstream lineage (toward
+     * package state, stores or output sinks).
+     */
+    private List<LineageSummary.EndpointTrace> sourceTraces(SoftwareModel model, List<Entity> ioSources) {
+        List<LineageSummary.EndpointTrace> out = new ArrayList<>();
+        for (Entity source : ioSources) {
+            List<String> readerIds = model.incoming(source.id()).stream()
+                    .filter(r -> r.kind() == RelationshipKind.READS_FROM)
+                    .map(Relationship::fromId).distinct().sorted().toList();
+            for (String readerId : readerIds) {
+                LineageResult result = service.trace(model, LineageQuery.downstream(readerId));
+                LineageResult.Path best = pickTerminalPath(model, result);
+                List<String> steps = new ArrayList<>();
+                steps.add("source: " + source.name());
+                String readerLabel = model.entity(readerId).map(Entity::qualifiedName).orElse(readerId);
+                steps.add("-[read by]-> " + readerLabel);
+                boolean reachesTerminal = false;
+                double confidence = 0.85; // the source edge itself (ADA-IO rule)
+                if (best != null) {
+                    List<String> rendered = renderSteps(model, best);
+                    steps.addAll(rendered.subList(1, rendered.size())); // skip duplicate reader label
+                    reachesTerminal = pathReachesTerminal(model, best);
+                    confidence = Math.min(confidence, best.minConfidence());
+                }
+                out.add(new LineageSummary.EndpointTrace(source.id(), steps, reachesTerminal,
+                        result.gaps().size(), confidence));
+            }
+        }
+        return out;
+    }
+
+    /** Prefers a path ending in a sink, state variable or table; otherwise the first. */
+    private LineageResult.Path pickTerminalPath(SoftwareModel model, LineageResult result) {
+        for (LineageResult.Path p : result.paths()) {
+            if (pathReachesTerminal(model, p)) {
+                return p;
+            }
+        }
+        return result.paths().isEmpty() ? null : result.paths().get(0);
+    }
+
+    private boolean pathReachesTerminal(SoftwareModel model, LineageResult.Path path) {
+        for (String nodeId : path.nodeIds()) {
+            boolean terminal = model.entity(nodeId)
+                    .map(e -> e.kind() == EntityKind.DATABASE_OBJECT
+                            || e.kind() == EntityKind.DATA_SINK
+                            || e.kind() == EntityKind.VARIABLE)
+                    .orElse(false);
+            if (terminal) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int countMappedEntities(SoftwareModel model) {

@@ -10,7 +10,9 @@ import java.util.List;
  */
 public record LineageSummary(List<EndpointView> endpoints,
                              List<StoreView> stores,
+                             List<IoView> sources,
                              List<EndpointTrace> traces,
+                             List<EndpointTrace> sourceTraces,
                              Coverage coverage) {
 
     /** A detected HTTP endpoint. */
@@ -22,7 +24,13 @@ public record LineageSummary(List<EndpointView> endpoints,
     public record StoreView(String stableId, String name, String mappedFromEntity, boolean nameInferred) {
     }
 
-    /** One representative downstream trace from an endpoint. */
+    /** An input source or output sink where data enters or leaves the analyzed code. */
+    public record IoView(String stableId, String name, String direction, String description) {
+        public static final String SOURCE = "SOURCE";
+        public static final String SINK = "SINK";
+    }
+
+    /** One representative downstream trace from an endpoint or input source. */
     public record EndpointTrace(String endpointId, List<String> steps, boolean reachesStore,
                                 int gapCount, double minConfidence) {
     }
@@ -41,7 +49,7 @@ public record LineageSummary(List<EndpointView> endpoints,
     }
 
     public static LineageSummary empty() {
-        return new LineageSummary(List.of(), List.of(), List.of(),
+        return new LineageSummary(List.of(), List.of(), List.of(), List.of(), List.of(),
                 new Coverage(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
     }
 }

@@ -116,6 +116,18 @@ public final class SoftwareModel {
         }
     }
 
+    /**
+     * Removes relationships matching the predicate. Used by analyzers to consume
+     * parser-emitted candidate edges after promoting them to evidence-backed edges
+     * (or discarding non-matches) so raw candidates never leak into results.
+     */
+    public void removeRelationships(java.util.function.Predicate<Relationship> predicate) {
+        synchronized (relationships) {
+            relationships.removeIf(predicate);
+        }
+        invalidateIndexes();
+    }
+
     public void addRelationship(Relationship relationship) {
         relationships.add(relationship);
         invalidateIndexes();

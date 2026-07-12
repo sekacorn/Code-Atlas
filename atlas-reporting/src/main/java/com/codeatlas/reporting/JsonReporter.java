@@ -131,17 +131,26 @@ public final class JsonReporter {
         }
         sb.append("    \"dataStores\": ").append(s.stores().isEmpty() ? "[]" : stores).append(",\n");
 
+        StringJoiner sources = new StringJoiner(",\n      ", "[\n      ", "\n    ]");
+        for (LineageSummary.IoView v : s.sources()) {
+            sources.add("{\"stableId\": " + Json.quote(v.stableId())
+                    + ", \"name\": " + Json.quote(v.name())
+                    + ", \"direction\": " + Json.quote(v.direction())
+                    + ", \"description\": " + Json.quote(v.description()) + "}");
+        }
+        sb.append("    \"inputSources\": ").append(s.sources().isEmpty() ? "[]" : sources).append(",\n");
+
         StringJoiner traces = new StringJoiner(",\n      ", "[\n      ", "\n    ]");
         for (LineageSummary.EndpointTrace t : s.traces()) {
-            StringJoiner steps = new StringJoiner(", ", "[", "]");
-            t.steps().forEach(x -> steps.add(Json.quote(x)));
-            traces.add("{\"endpoint\": " + Json.quote(t.endpointId())
-                    + ", \"reachesStore\": " + t.reachesStore()
-                    + ", \"gapCount\": " + t.gapCount()
-                    + ", \"confidence\": " + String.format(Locale.ROOT, "%.2f", t.minConfidence())
-                    + ", \"steps\": " + steps + "}");
+            traces.add(traceJson(t, "endpoint"));
         }
         sb.append("    \"traces\": ").append(s.traces().isEmpty() ? "[]" : traces).append(",\n");
+
+        StringJoiner sourceTraces = new StringJoiner(",\n      ", "[\n      ", "\n    ]");
+        for (LineageSummary.EndpointTrace t : s.sourceTraces()) {
+            sourceTraces.add(traceJson(t, "source"));
+        }
+        sb.append("    \"sourceTraces\": ").append(s.sourceTraces().isEmpty() ? "[]" : sourceTraces).append(",\n");
 
         var c = s.coverage();
         sb.append("    \"coverage\": {")
@@ -157,6 +166,16 @@ public final class JsonReporter {
           .append(", \"partialPaths\": ").append(c.partialPaths())
           .append("}\n  }");
         return sb.toString();
+    }
+
+    private String traceJson(LineageSummary.EndpointTrace t, String rootKey) {
+        StringJoiner steps = new StringJoiner(", ", "[", "]");
+        t.steps().forEach(x -> steps.add(Json.quote(x)));
+        return "{\"" + rootKey + "\": " + Json.quote(t.endpointId())
+                + ", \"reachesStore\": " + t.reachesStore()
+                + ", \"gapCount\": " + t.gapCount()
+                + ", \"confidence\": " + String.format(Locale.ROOT, "%.2f", t.minConfidence())
+                + ", \"steps\": " + steps + "}";
     }
 
     private String diagnostics(ReportData data) {

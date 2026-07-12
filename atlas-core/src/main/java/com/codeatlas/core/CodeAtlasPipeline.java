@@ -163,6 +163,7 @@ public final class CodeAtlasPipeline {
         // Lineage rules run after linking (they need resolved type/impl edges) and
         // before persistence (lineage facts belong to the scan snapshot).
         new com.codeatlas.analysis.lineage.LineageAnalyzer().apply(model);
+        new com.codeatlas.analysis.lineage.AdaLineageAnalyzer().apply(model);
 
         store.persistCompletedScan(scanRowId, model, pathToHash, newCacheEntries, pathToHash.keySet());
 

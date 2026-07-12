@@ -30,6 +30,14 @@ public final class EvidenceKeys {
     public static final String ARG_COUNT = "argCount";
     public static final String RECEIVER_NAME = "receiverName";
     public static final String TYPE_NAME = "typeName";
+    /** Full dotted call target as written, e.g. {@code Telemetry.Send} (Ada). */
+    public static final String QUALIFIED_CALL_NAME = "qualifiedCallName";
+
+    // Parser-supplied package-state candidates (consumed by the Ada lineage analyzer).
+    /** Assignment/reference target as written, e.g. {@code Current_Route} or {@code Pkg.Var}. */
+    public static final String STATE_NAME = "stateName";
+    /** Qualified name of the package enclosing the referencing statement. */
+    public static final String ENCLOSING_PACKAGE = "enclosingPackage";
 
     private EvidenceKeys() {
     }

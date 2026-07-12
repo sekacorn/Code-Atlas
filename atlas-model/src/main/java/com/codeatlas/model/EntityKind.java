@@ -44,5 +44,10 @@ public enum EntityKind {
     DATABASE_OBJECT,
     WORKFLOW,
     ENDPOINT,
-    DEPENDENCY
+    DEPENDENCY,
+
+    // Data-lineage artifacts: where data enters and leaves the analyzed code
+    // (e.g. console I/O). Backed by lineage rules and fixtures, not placeholders.
+    DATA_SOURCE,
+    DATA_SINK
 }

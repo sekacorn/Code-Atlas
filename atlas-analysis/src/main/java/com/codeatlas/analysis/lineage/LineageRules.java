@@ -47,6 +47,27 @@ public final class LineageRules {
     /** A detected reference whose target could not be identified — kept, never dropped. */
     public static final String UNRESOLVED = "ATLAS-LINEAGE-UNRESOLVED-001";
 
+    // ---- Ada rules ----
+
+    /** Ada call resolved by qualified name (0.95) or unique simple name (0.85). */
+    public static final String ADA_CALL = "ATLAS-LINEAGE-ADA-CALL-001";
+    /** Ada call with several candidate subprograms (overloads) — all kept, ambiguous. */
+    public static final String ADA_CALL_AMBIGUOUS = "ATLAS-LINEAGE-ADA-CALL-002";
+    /** Ada transformation: single-parameter function between two project types, mapper-style name. */
+    public static final String ADA_MAP = "ATLAS-LINEAGE-ADA-MAP-001";
+    /** Ada transformation suggested by type flow alone (inferred). */
+    public static final String ADA_MAP_TYPEFLOW = "ATLAS-LINEAGE-ADA-MAP-002";
+    /** Assignment to package state (qualified 0.90, enclosing-package 0.85). */
+    public static final String ADA_WRITE = "ATLAS-LINEAGE-ADA-WRITE-001";
+    /** Read of package state (qualified 0.90, enclosing-package 0.85). */
+    public static final String ADA_READ = "ATLAS-LINEAGE-ADA-READ-001";
+    /** Console input via Ada.Text_IO (with-clause + Get/Get_Line/Get_Immediate). */
+    public static final String ADA_IO_READ = "ATLAS-LINEAGE-ADA-IO-001";
+    /** Console output via Ada.Text_IO (with-clause + Put/Put_Line). */
+    public static final String ADA_IO_WRITE = "ATLAS-LINEAGE-ADA-IO-002";
+    /** Qualified call into a withed unit that is not part of the analyzed code. */
+    public static final String ADA_EXTERNAL = "ATLAS-LINEAGE-ADA-EXTERNAL-001";
+
     private LineageRules() {
     }
 }

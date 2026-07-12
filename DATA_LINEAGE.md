@@ -1,14 +1,19 @@
-# Code Atlas — Java Data Lineage
+# Code Atlas — Data Lineage (Java and Ada)
 
-Code Atlas traces where data enters a Java application, what transforms it, where
-it is stored, and what consumes it — deterministically, offline, with evidence on
+Code Atlas traces where data enters an application, what transforms it, where it
+is stored, and what consumes it — deterministically, offline, with evidence on
 every edge, and with unresolved segments shown rather than papered over. No AI is
 involved anywhere in lineage construction.
 
-**Scope today:** one complete Spring-style vertical slice —
-`HTTP endpoint → controller → service → transformation/validation → Spring Data
-repository → JPA entity → database table → response DTO`. Ada lineage, JAX-RS,
-JDBC/SQL extraction and message queues are not yet implemented (see
+**Scope today:** two complete vertical slices —
+
+- **Java/Spring:** `HTTP endpoint → controller → service → transformation/validation
+  → Spring Data repository → JPA entity → database table → response DTO`.
+- **Ada:** `console input (Ada.Text_IO) → procedure → transformation function →
+  package state → reader procedure → console output`, with qualified cross-package
+  state access and explicit gaps for calls into withed-but-unanalyzed units.
+
+JAX-RS, JDBC/SQL extraction and message queues are not yet implemented (see
 [Known limitations](#known-limitations)).
 
 ## Example
@@ -61,6 +66,41 @@ source location (file:line)
 The edges are stored with the scan snapshot, so lineage queries run from the
 persisted index without rescanning.
 
+## Ada lineage
+
+### Example
+
+```
+$ atlas lineage ada:procedure:Mission_Data.Load_Route --downstream
+
+Path (confidence 0.85):
+  PROCEDURE  Mission_Data.Load_Route
+    -[reads_from 0.85 resolved]-> DATA_SOURCE console_input     (ADA-IO-001)
+    -[invokes 0.85 resolved]->   Transform_Waypoints(Raw_Data)  (ADA-CALL-001)
+    -[produces 0.85 resolved]->  Mission_Data.Route_Type        (ADA-MAP-001)
+    -[writes_to 0.85 resolved]-> VARIABLE Mission_Data.Current_Route (ADA-WRITE-001)
+
+Unresolved:
+  - [UNRESOLVED_TARGET] Reference to 'Telemetry.Send' could not be resolved
+```
+
+### What is detected
+
+| Step | Mechanism | Classification |
+|---|---|---|
+| Package state | package-level object declarations in specs and bodies (record components, subprogram locals and parameters are excluded); spec/body evidence retained | DISCOVERED |
+| State writes | assignment targets (`Var := …`, `Pkg.Var := …`, component paths) resolved against known state — qualified 0.90, enclosing-package 0.85; assignments to locals/parameters are excluded at parse time | RESOLVED |
+| State reads | same-file state names in statements (shadowing-checked) and qualified `Pkg.Var` references | RESOLVED |
+| Calls | qualified names (`Raw_Types.Parse`) at 0.95; unique unqualified names at 0.85; overload sets kept ambiguous at 0.50 | RESOLVED / INFERRED |
+| Transformation | single-parameter function between two project-declared types; `Transform_`/`To_`/`Convert`/`From_`/`Make_`/`Build_` naming → 0.85, type-flow alone → 0.60 inferred | RESOLVED / INFERRED |
+| Console I/O | `with Ada.Text_IO` (checked at the **call site's file**) + `Get`/`Get_Line`/`Get_Immediate` → `console_input` source; `Put`/`Put_Line` → `console_output` sink | RESOLVED |
+| External units | qualified call whose prefix is withed but not part of the analyzed code → explicit UNRESOLVED edge and gap | UNRESOLVED |
+
+Parser-emitted state **candidates** are consumed by the analyzer: each is either
+promoted to an evidence-backed edge or discarded as an ordinary non-state
+identifier — raw candidates never appear as false gaps, and truly external
+references are kept visible.
+
 ## Rule catalog and confidence
 
 Confidence is **fixed per rule** — never produced by a model.
@@ -82,6 +122,12 @@ Confidence is **fixed per rule** — never produced by a model.
 | `ATLAS-LINEAGE-READ-001` / `WRITE-001` | classified repository operation | 0.90 × table confidence |
 | `ATLAS-LINEAGE-REPOSITORY-003` | unclassified repository operation (`uses`) | 0.70 × table confidence |
 | `ATLAS-LINEAGE-UNRESOLVED-001` | detected reference with unidentifiable target | 0.40, unresolved |
+| `ATLAS-LINEAGE-ADA-CALL-001` | Ada call: qualified name / unique simple name | 0.95 / 0.85 |
+| `ATLAS-LINEAGE-ADA-CALL-002` | Ada overloaded call — every candidate kept | 0.50, ambiguous |
+| `ATLAS-LINEAGE-ADA-MAP-001` / `-002` | Ada transformation: named + type flow / type flow only | 0.85 / 0.60 inferred |
+| `ATLAS-LINEAGE-ADA-WRITE-001` / `READ-001` | package-state write / read (qualified / enclosing) | 0.90 / 0.85 |
+| `ATLAS-LINEAGE-ADA-IO-001` / `-002` | console input / output via Ada.Text_IO | 0.85 |
+| `ATLAS-LINEAGE-ADA-EXTERNAL-001` | qualified call into a withed, unanalyzed unit | 0.40, unresolved |
 
 Edges below 0.40 are not emitted. Traversal defaults exclude inferred edges
 (`--include-inferred` adds them) and apply a 0.40 confidence floor
@@ -94,6 +140,10 @@ atlas lineage "POST /customers" --downstream
 atlas lineage sql:table:customer --upstream
 atlas lineage java:type:com.example.CustomerResponse --upstream --include-inferred
 atlas lineage CustomerResponse --both --max-depth 6 --format json
+
+atlas lineage ada:procedure:Mission_Data.Load_Route --downstream
+atlas lineage ada:variable:Mission_Data.Current_Route --upstream   # who writes/reads this state
+atlas lineage ada:source:console_input --upstream                  # who consumes this input
 ```
 
 Options: `--repo <path>` (default index of that repository), `--index <path>`,
@@ -151,6 +201,8 @@ and paths only; connection strings or credentials are not extracted.
 
 ## Known limitations
 
+Java:
+
 - Spring annotations only; **JAX-RS is not yet supported**. `@RequestMapping`
   without a verb-specific annotation does not produce an endpoint.
 - Receiver resolution covers declared fields, `this.field` and static type names;
@@ -158,9 +210,28 @@ and paths only; connection strings or credentials are not extracted.
 - JDBC / literal SQL extraction is not implemented; dynamic SQL remains out of
   scope by design.
 - Transformation detection covers single-parameter methods.
-- `--scan` can only address the latest completed scan (older snapshots keep
-  metadata only).
 - Default table naming is an inference; real physical naming strategies are
   configuration-dependent.
 - MapStruct `@Mapper` interfaces are tagged but implementations are not generated,
   so mapper-interface calls resolve only when an implementation exists in source.
+
+Ada:
+
+- State tracking covers **package-level objects**; nested-package state, `use`-
+  clause-visible unqualified cross-package reads, and reads of spec-declared state
+  from the body **without qualification** are not detected (writes are). Declarative-
+  part initializer reads are not scanned.
+- Shadowing detection covers subprogram locals and parameters; identifiers declared
+  in inner blocks may still shadow state undetected.
+- Array indexing and parameterless-function calls are syntactically identical to
+  calls; some `X (I)` references are conservatively treated as calls.
+- Console I/O detection requires a `with Ada.Text_IO` in the calling file and does
+  not follow renamings of Ada.Text_IO; file-based Text_IO handles are not modeled.
+- Overload resolution is by name only (no argument-type matching), so overload sets
+  stay ambiguous.
+- No database interaction modeling for Ada (no binding libraries parsed).
+
+General:
+
+- `--scan` can only address the latest completed scan (older snapshots keep
+  metadata only).

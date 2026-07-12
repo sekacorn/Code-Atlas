@@ -124,6 +124,8 @@ public final class Entity {
             case CONFIGURATION -> "config";
             // Only tables are modeled today; views/procedures will refine this token.
             case DATABASE_OBJECT -> "table";
+            case DATA_SOURCE -> "source";
+            case DATA_SINK -> "sink";
             case ENDPOINT -> "endpoint";
             case WORKFLOW -> "workflow";
             case DEPENDENCY -> "dependency";

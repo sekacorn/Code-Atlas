@@ -49,7 +49,7 @@ and who consumes it.**
 | **Analysis** | Repository metrics (files, LOC, comments, language distribution, entity counts), complexity hotspots with risk bands, **dead-code detection with an evidence + confidence model**, package coupling & circular-dependency detection |
 | **Local index** | **File-backed H2 by default** (`~/.code-atlas/index/…`, never inside the analyzed repo) with scan versioning, atomic snapshot replacement (a failed scan never clobbers the last good one), and full relationship metadata — see [PERSISTENCE.md](PERSISTENCE.md) |
 | **Incremental scanning** | Per-file SHA-256 change detection plus **conservative reuse of unchanged parser results** (same content + same parser version), verified byte-identical to re-parsing — see [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) |
-| **Java data lineage** | Deterministic endpoint→controller→service→transformation→repository→**table** tracing with a rule id, confidence and source evidence on every edge; ambiguous DI and unresolvable calls surface as explicit gaps; `atlas lineage` queries the persisted index up- or downstream — see [DATA_LINEAGE.md](DATA_LINEAGE.md) |
+| **Data lineage (Java + Ada)** | Deterministic tracing with a rule id, confidence and source evidence on every edge — Java: endpoint→controller→service→transformation→repository→**table**; Ada: **console input→procedure→transformation→package state→output**; ambiguity and unresolvable calls surface as explicit gaps; `atlas lineage` queries the persisted index up- or downstream — see [DATA_LINEAGE.md](DATA_LINEAGE.md) |
 | **Analysis coverage** | Every scan reports files analyzed/skipped/failed and reference resolution rate, and is labelled **PARTIAL** when coverage is incomplete — incomplete analysis is never presented as complete |
 | **Resolution status** | Relationships expose `DISCOVERED` / `RESOLVED` / `INFERRED` / `UNRESOLVED` so uncertainty is explicit (see [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md)) |
 | **Reports** | Self-contained **HTML** dashboard (offline, no CDN/scripts), plus **JSON** and **CSV** |
@@ -87,6 +87,7 @@ read without rescanning:
 ```bash
 java -jar atlas-cli/target/atlas.jar lineage "POST /customers" --downstream --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar lineage sql:table:customer --upstream --repo /path/to/repo
+java -jar atlas-cli/target/atlas.jar lineage ada:variable:Mission_Data.Current_Route --upstream --repo /path/to/repo
 ```
 
 ### Options
