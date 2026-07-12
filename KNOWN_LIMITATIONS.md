@@ -35,10 +35,14 @@ expectations. It is updated as limitations are addressed.
   can miss constructs with unusual formatting or advanced generics, and its call
   graph is heuristic. SPARK contract capture handles common `Pre`/`Post` aspect
   forms.
-- No configuration (XML/YAML/JSON/properties), database (SQL/DDL), or build-file
-  (`.gpr`, Maven/Gradle) parsing yet. Build membership therefore does not inform
-  dead-code or entry-point detection, which can cause false positives for code
-  invoked via frameworks, reflection, DI, or serialization.
+- **Configuration** (Spring/JEE XML, `.properties`, YAML) is parsed for code
+  references, which sharpen dead-code (wired classes are not dead). Limits: JSON
+  config is not parsed; only dotted class-name *values* become references (SpEL,
+  placeholder-indirected and annotation-scanned beans are not followed); the YAML
+  reader is minimal (no anchors/flow collections); config values are not yet lineage
+  data sources. No database (SQL/DDL) or build-file (`.gpr`, Maven/Gradle) parsing
+  yet — so `get_build_membership` stays unsupported and build membership does not
+  inform entry-point/dead-code detection.
 
 ## Analysis
 
@@ -73,8 +77,8 @@ expectations. It is updated as limitations are addressed.
 
 ## Agent tool API
 
-- `get_build_membership` and `get_configuration_references` return
-  `supported=false` until build-file and configuration parsers exist.
+- `get_configuration_references` is now supported (configuration parsing exists);
+  `get_build_membership` still returns `supported=false` until build-file parsing exists.
 - Dead-code/complexity served through the tool API use the default analysis
   thresholds; a scan run with custom thresholds may report different counts.
 - Change impact states its blind spots explicitly (no build/config membership;

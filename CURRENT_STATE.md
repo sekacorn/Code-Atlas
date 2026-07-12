@@ -21,6 +21,10 @@ concrete technical risks that later milestones must address.
   enums, records, methods, constructors, fields, imports, inheritance/implements,
   method calls, instantiations, **type-reference edges** (field/param/return),
   cyclomatic complexity, exposure heuristics (public/`main`/framework annotations).
+- **Configuration parser** (`atlas-parser-config`): XML (Spring beans, XXE-hardened
+  SAX), `.properties` and YAML → `CONFIGURATION` entities + `CONFIGURES` code
+  references (config key + location evidence); feeds dead-code (wired classes are not
+  dead) and `get_configuration_references`; secrets masked, never stored.
 - **Ada/SPARK parser** (`atlas-parser-ada`): deterministic line-and-scope scanner
   for `.ads`/`.adb` — packages & child packages, procedures, functions, types
   (record/enum/access/derived), tasks, protected types, exceptions, `with`
@@ -76,8 +80,8 @@ concrete technical risks that later milestones must address.
   endpoint→…→table; Ada: console→procedure→transformation→package state→output;
   per-edge rule ids, confidence, resolution status, gaps, CLI/JSON/HTML — see
   DATA_LINEAGE.md). Still missing: config/SQL parser input to lineage.
-- Config (XML/YAML/JSON/properties), database (SQL/DDL), build (`.gpr`, Maven/
-  Gradle) and custom-format parsers.
+- Database (SQL/DDL), build (`.gpr`, Maven/Gradle) and custom-format parsers.
+  (Configuration XML/YAML/properties parsing is now implemented; JSON config is not.)
 - Build membership feeding dead-code / entry-point / impact analysis.
 - ~~Read-only agent tool API~~ ~~Orientation Agent + summaries~~ ~~Data-Lineage
   Investigator Agent~~ **All done** (see AGENTS.md). A dedicated Impact agent
@@ -89,9 +93,9 @@ concrete technical risks that later milestones must address.
 
 ## Current architecture
 
-**Module structure** (13 Maven modules, Java 21):
+**Module structure** (14 Maven modules, Java 21):
 `atlas-model` → `atlas-parser-api` → `atlas-scanner` → `atlas-parser-java` /
-`atlas-parser-ada` → `atlas-index` → `atlas-analysis` → `atlas-reporting` →
+`atlas-parser-ada` → `atlas-parser-config` → `atlas-index` → `atlas-analysis` → `atlas-reporting` →
 `atlas-tools` → `atlas-agents` → `atlas-core` → `atlas-cli`.
 
 **Main execution path** (`CodeAtlasPipeline.run`):
@@ -121,7 +125,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 
 ## Current build health
 
-- **Build:** `mvn clean install` → **BUILD SUCCESS** (13 modules).
+- **Build:** `mvn clean install` → **BUILD SUCCESS** (14 modules).
 - **Test:** `mvn test` → **91 tests, 0 failures, 0 errors** across model, scanner,
   parsers, index, analysis, core, tools and agents.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging

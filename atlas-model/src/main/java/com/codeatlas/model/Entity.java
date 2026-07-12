@@ -102,6 +102,11 @@ public final class Entity {
         if (kind == EntityKind.PROJECT) {
             return "project:" + qualifiedName;
         }
+        // Configuration files are identified by path, like files (e.g.
+        // config:application.yml), not by an extra language token.
+        if (kind == EntityKind.CONFIGURATION) {
+            return "config:" + qualifiedName;
+        }
         String lang = (language == null || language.isBlank()
                 || language.equals("unknown") || language.equals("n/a")) ? "code" : language;
         return lang + ":" + kindToken(kind) + ":" + qualifiedName;

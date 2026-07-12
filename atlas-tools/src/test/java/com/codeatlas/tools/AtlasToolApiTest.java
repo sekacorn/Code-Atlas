@@ -140,7 +140,10 @@ class AtlasToolApiTest {
             var build = api.getBuildMembership("java:type:com.example.customer.CustomerEntity");
             assertFalse(build.supported(), "missing capability must be explicit");
             assertTrue(build.note().contains("not implemented"));
-            assertFalse(api.getConfigurationReferences(null).supported());
+            // Configuration references are now supported (this fixture has no config,
+            // so the answer is an empty-but-supported list, not "unsupported").
+            var config = api.getConfigurationReferences(null, 50);
+            assertTrue(config.supported(), "configuration references are implemented");
         }
     }
 

@@ -105,7 +105,7 @@ public final class ToolCommand implements Callable<Integer> {
             case "get_unresolved_references" -> api.getUnresolvedReferences(limit);
             case "get_diagnostics" -> api.getDiagnostics();
             case "get_build_membership" -> api.getBuildMembership(id);
-            case "get_configuration_references" -> api.getConfigurationReferences(id);
+            case "get_configuration_references" -> api.getConfigurationReferences(id, limit);
             case "trace_data_lineage" -> null; // handled below: dedicated lineage JSON format
             default -> {
                 System.err.println("Unknown operation '" + operation + "'. See 'atlas tool --help'.");

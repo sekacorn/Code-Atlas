@@ -67,7 +67,7 @@ public final class Linker {
             // by their own analyzers and must not skew the linker's reference stats.
             List<Entity> targets = switch (r.kind()) {
                 case CALLS -> resolveCall(r, callablesByName);
-                case INHERITS, IMPLEMENTS, INSTANTIATES, IMPORTS, RENAMES, REFERENCES ->
+                case INHERITS, IMPLEMENTS, INSTANTIATES, IMPORTS, RENAMES, REFERENCES, CONFIGURES ->
                         resolveType(r, typesByName, byQualifiedName);
                 default -> null;
             };
@@ -85,8 +85,14 @@ public final class Linker {
             refResolved++;
             for (Entity target : targets) {
                 if (!target.id().equals(r.fromId())) {
-                    resolved.add(Relationship.builder(r.kind(), r.fromId(), target.id())
-                            .resolved(true).build());
+                    // Carry the original edge's evidence (source location and
+                    // attributes such as the config key or call name) onto the
+                    // resolved edge, so resolution never loses provenance.
+                    Relationship.Builder rb = Relationship.builder(r.kind(), r.fromId(), target.id())
+                            .resolved(true);
+                    r.location().ifPresent(rb::location);
+                    r.attributes().forEach(rb::attribute);
+                    resolved.add(rb.build());
                     edgesAdded++;
                 }
             }

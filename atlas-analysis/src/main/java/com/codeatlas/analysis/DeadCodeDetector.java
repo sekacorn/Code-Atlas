@@ -37,7 +37,7 @@ public final class DeadCodeDetector {
             RelationshipKind.IMPLEMENTS, RelationshipKind.INSTANTIATES, RelationshipKind.USES,
             RelationshipKind.IMPORTS, RelationshipKind.RENAMES, RelationshipKind.DEPENDS_ON,
             RelationshipKind.INVOKES, RelationshipKind.CONSUMES, RelationshipKind.PRODUCES,
-            RelationshipKind.VALIDATED_BY, RelationshipKind.MANAGES);
+            RelationshipKind.VALIDATED_BY, RelationshipKind.MANAGES, RelationshipKind.CONFIGURES);
 
     // Entity kinds worth reporting as potentially dead. Packages are intentionally
     // excluded: nothing "uses" a package directly, so flagging them yields false

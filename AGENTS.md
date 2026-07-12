@@ -57,7 +57,7 @@ confidence, resolution status, inferred/ambiguous flags and file:line evidence.
 | `get_repository_summary` | headline facts for orientation | ✅ |
 | `get_unresolved_references`, `get_diagnostics` | honest gaps and scan-time diagnostics | ✅ |
 | `get_build_membership` | — | ⛔ `supported=false` until build-file parsing exists |
-| `get_configuration_references` | — | ⛔ `supported=false` until config parsing exists |
+| `get_configuration_references` | config → code references (CONFIGURES edges) with the config key and location | ✅ |
 
 Dead-code and complexity views are computed over the persisted model with the
 default thresholds (complexity 10, dead-code confidence 60); a scan run with

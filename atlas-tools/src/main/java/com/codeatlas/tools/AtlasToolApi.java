@@ -449,10 +449,27 @@ public final class AtlasToolApi implements AutoCloseable {
                         + "build membership cannot be answered");
     }
 
-    public ToolResult<List<Views.NeighborView>> getConfigurationReferences(String stableId) {
-        return ToolResult.unsupported(scanId(), List.of(),
-                "Configuration parsing (XML/YAML/properties) is not implemented yet; "
-                        + "configuration references cannot be answered");
+    /**
+     * Configuration → code references: the {@code CONFIGURES} edges from parsed
+     * configuration files. With a {@code stableId}, only references to (or from)
+     * that entity; otherwise all of them. Each carries the config key and location.
+     */
+    public ToolResult<List<Views.NeighborView>> getConfigurationReferences(String stableId, int limit) {
+        List<Views.NeighborView> all = model.relationships().stream()
+                .filter(r -> r.kind() == RelationshipKind.CONFIGURES && r.resolved())
+                .filter(r -> stableId == null || r.fromId().equals(stableId) || r.toId().equals(stableId))
+                .sorted(Comparator.comparing(Relationship::fromId).thenComparing(Relationship::toId))
+                .map(r -> {
+                    // Present the "other end": the referenced class, or (from a class's
+                    // view) the configuration that references it.
+                    String otherId = stableId != null && stableId.equals(r.toId()) ? r.fromId() : r.toId();
+                    return model.entity(otherId)
+                            .map(o -> new Views.NeighborView(Views.EntityView.of(o), Views.EdgeView.of(r)))
+                            .orElse(null);
+                })
+                .filter(n -> n != null)
+                .toList();
+        return limited(all, limit);
     }
 
     // ---- helpers ----

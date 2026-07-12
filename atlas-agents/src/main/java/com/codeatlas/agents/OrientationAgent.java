@@ -278,14 +278,13 @@ public final class OrientationAgent {
             evidence.add(new AgentAnswer.Citation(u.fromId(), u.location()));
         });
         ToolResult<?> build = api.getBuildMembership(null);
-        ToolResult<?> config = api.getConfigurationReferences(null);
         return new AgentAnswer("What parts of the repository could not be analyzed?",
                 "Unresolved references and unsupported capabilities are listed below - "
                         + "treat absent paths as unknown, not absent.",
                 confirmed, List.of(), evidence,
                 "High - these are the platform's own recorded gaps",
                 List.of("Do the unresolved targets hide additional data flows?"),
-                List.of("Unsupported: " + build.note(), "Unsupported: " + config.note(),
+                List.of("Unsupported: " + build.note(),
                         "Reflection, dynamic SQL and runtime configuration are invisible to static analysis"),
                 List.of("atlas tool get_unresolved_references --limit 200",
                         "atlas tool get_diagnostics"));

@@ -24,6 +24,7 @@
         <module>atlas-scanner</module>
         <module>atlas-parser-java</module>
         <module>atlas-parser-ada</module>
+        <module>atlas-parser-config</module>
         <module>atlas-index</module>
         <module>atlas-analysis</module>
         <module>atlas-reporting</module>
@@ -72,6 +73,11 @@
             <dependency>
                 <groupId>com.codeatlas</groupId>
                 <artifactId>atlas-parser-ada</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.codeatlas</groupId>
+                <artifactId>atlas-parser-config</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
