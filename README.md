@@ -14,6 +14,71 @@ function. AI, if ever enabled, is an optional explanation layer only.
 
 ---
 
+## Quick start
+
+A menu launcher wraps the whole workflow — build, scan, view the report, and the
+common queries — so you don't have to remember the `java -jar` invocations. It
+serves the HTML report from a **loopback-only** local web server (the JDK's
+built-in `jwebserver`, falling back to Python) and can start and stop that server
+for you.
+
+**Windows (PowerShell):**
+
+```powershell
+.\atlas.ps1
+```
+
+**macOS / Linux (bash):**
+
+```bash
+./atlas.sh
+```
+
+Either opens the same interactive menu:
+
+```
+==================  Code Atlas  ==================
+  1) Build            compile the runnable jar
+  2) Scan a repository
+  3) Start report server   (view the HTML report)
+  4) Stop report server
+  5) Orient            "where do I start?"
+  6) Lineage           trace where data flows
+  7) Export a graph    (SVG)
+  8) Status
+  0) Quit
+```
+
+A typical first run is **1** (build) → **2** (scan — point it at any repository)
+→ **3** (start the server, which opens `http://127.0.0.1:8137/report.html` in
+your browser) → **4** (stop the server when you're done).
+
+Every option is also a direct sub-command, so you can drive it from scripts:
+
+```powershell
+.\atlas.ps1 build                 # mvn clean install
+.\atlas.ps1 scan C:\path\to\repo  # scan and write the report
+.\atlas.ps1 start                 # serve the report on 127.0.0.1:8137
+.\atlas.ps1 stop                  # stop the server
+.\atlas.ps1 status                # build / last-scan / server status
+```
+
+```bash
+./atlas.sh build
+./atlas.sh scan /path/to/repo
+./atlas.sh start                  # → http://127.0.0.1:8137/report.html
+./atlas.sh stop
+```
+
+The port defaults to `8137`; override it with the `ATLAS_PORT` environment
+variable. The launcher keeps its runtime state (server PID, last-scanned repo)
+under `.atlas-run/` and writes reports to `atlas-report/` — both git-ignored.
+Nothing binds beyond `127.0.0.1` and no network access is required.
+
+For the underlying commands and every option, see [Build](#build) and [Run](#run).
+
+---
+
 ## Documentation
 
 - [CURRENT_STATE.md](CURRENT_STATE.md) — factual assessment of what is implemented, build health, and technical risks.
@@ -151,18 +216,19 @@ changes, no rebuild of the platform.**
 
 ## Roadmap (per the platform spec)
 
-Planned modules that drop into the existing, language-neutral core:
+Planned modules that drop into the existing, language-neutral core (configuration
+parsing, graph exports and deterministic summaries have since landed — see the
+[What works today](#what-works-today) table):
 
-- **Parsers:** configuration (XML/YAML/JSON/properties), database (SQL/DDL),
-  Ada `.gpr` build files, custom proprietary formats (`.workflow`, `.mapping`,
-  `.rules`, …), and future languages (C/C++, Python, COBOL, Fortran).
-- **`atlas-graph`:** call / dependency / architecture / dead-code graph exports.
-- **`atlas-summary`:** deterministic project/component/method summaries.
+- **Parsers:** database (SQL/DDL), Ada `.gpr` build files, remaining configuration
+  formats (JSON), custom proprietary formats (`.workflow`, `.mapping`, `.rules`, …),
+  and future languages (C/C++, Python, COBOL, Fortran).
 - **`atlas-ui`:** interactive dashboard, explorer, graph viewer.
 - **`atlas-ai`:** optional local explanation layer (consumes structured context
   only; never scans source directly).
-- **Analysis:** impact analysis, unused-package detection, architecture
-  compliance rules, PDF reports, git-history analysis, security mapping.
+- **Analysis:** unused-package detection, architecture compliance rules, PDF
+  reports, git-history analysis, security mapping. (Change-impact analysis is
+  already available via `atlas tool calculate_change_impact`.)
 
 ---
 
