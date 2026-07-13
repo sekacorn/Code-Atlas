@@ -151,6 +151,116 @@ Options: `--repo <path>` (default index of that repository), `--index <path>`,
 `--min-confidence`, `--scan <scan-id>`, `--format text|json`. The command is
 read-only and requires a prior `atlas scan`.
 
+## Developer tracing recipes
+
+Use these commands when a developer needs to follow data through an unfamiliar
+repository. Replace `/path/to/repo` with the repository that was scanned.
+
+### 1. Build the index first
+
+```bash
+java -jar atlas-cli/target/atlas.jar scan /path/to/repo --out ./atlas-report
+```
+
+The scan creates the local reports and persists the index used by later lineage
+queries.
+
+### 2. Start from an HTTP endpoint
+
+Trace what a request can reach downstream:
+
+```bash
+java -jar atlas-cli/target/atlas.jar lineage "POST /customers" \
+  --downstream \
+  --repo /path/to/repo
+```
+
+Use JSON when another tool or review checklist needs the exact path data:
+
+```bash
+java -jar atlas-cli/target/atlas.jar lineage "POST /customers" \
+  --downstream \
+  --repo /path/to/repo \
+  --format json
+```
+
+### 3. Start from a database table
+
+Trace who writes to or reads from a table:
+
+```bash
+java -jar atlas-cli/target/atlas.jar lineage sql:table:customer \
+  --upstream \
+  --repo /path/to/repo
+```
+
+Trace both directions around the same table:
+
+```bash
+java -jar atlas-cli/target/atlas.jar lineage sql:table:customer \
+  --both \
+  --max-depth 8 \
+  --repo /path/to/repo
+```
+
+### 4. Start from Ada package state
+
+Trace who writes or reads a package-level variable:
+
+```bash
+java -jar atlas-cli/target/atlas.jar lineage ada:variable:Mission_Data.Current_Route \
+  --both \
+  --repo /path/to/repo
+```
+
+Trace where console input is consumed in supported Ada flows:
+
+```bash
+java -jar atlas-cli/target/atlas.jar lineage ada:source:console_input \
+  --downstream \
+  --repo /path/to/repo
+```
+
+### 5. Ask for an investigator-style explanation
+
+Use `investigate` when a developer wants a narrative answer instead of only a
+graph traversal:
+
+```bash
+java -jar atlas-cli/target/atlas.jar investigate sql:table:customer \
+  --repo /path/to/repo
+```
+
+```bash
+java -jar atlas-cli/target/atlas.jar investigate ada:variable:Mission_Data.Current_Route \
+  --repo /path/to/repo
+```
+
+The investigator output separates confirmed facts, inferred findings, evidence,
+confidence, unresolved questions and known limitations.
+
+### 6. Use the read-only tool API
+
+For scripts or agent workflows, call the tool API directly:
+
+```bash
+java -jar atlas-cli/target/atlas.jar tool trace_data_lineage \
+  --id "POST /customers" \
+  --direction downstream \
+  --repo /path/to/repo
+```
+
+```bash
+java -jar atlas-cli/target/atlas.jar tool trace_data_lineage \
+  --id sql:table:customer \
+  --direction upstream \
+  --repo /path/to/repo
+```
+
+Treat a reported path as complete only within the analyzed evidence. Review the
+confidence, `INFERRED` markers, ambiguous edges and unresolved gaps before using
+the trace as a decision input.
+
 ## JSON output
 
 Deterministic (no timestamps; content-derived `scanId`; stable ordering):

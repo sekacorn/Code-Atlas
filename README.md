@@ -26,7 +26,7 @@ function. AI, if ever enabled, is an optional explanation layer only.
 
 ## Status — Milestone 1 (Java + Ada vertical slice)
 
-This milestone proves the whole pipeline end to end:
+This milestone demonstrates the whole pipeline end to end:
 
 ```
 scan → parse (Java + Ada) → unified model → link cross-references
@@ -100,6 +100,10 @@ java -jar atlas-cli/target/atlas.jar summarize sql:table:customer --repo /path/t
 java -jar atlas-cli/target/atlas.jar investigate sql:table:customer --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar graph --type architecture --format svg --repo /path/to/repo -o arch.svg
 ```
+
+For step-by-step examples that help a developer trace data from endpoints,
+tables, Ada package state or console input, see
+[DATA_LINEAGE.md](DATA_LINEAGE.md#developer-tracing-recipes).
 
 ### Options
 

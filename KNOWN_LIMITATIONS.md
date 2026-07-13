@@ -47,7 +47,7 @@ expectations. It is updated as limitations are addressed.
 ## Analysis
 
 - **Dead code is probabilistic.** Findings are candidates with confidence scores,
-  not proof. Reflection, DI, external invocation, and dynamic configuration are
+  not certainty. Reflection, DI, external invocation, and dynamic configuration are
   known blind spots and should be assumed possible.
 - **Data lineage covers two vertical slices: Java/Spring and Ada.** Java:
   endpoint → … → table; Ada: console input → procedure → transformation → package
