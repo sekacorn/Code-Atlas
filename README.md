@@ -171,6 +171,7 @@ Planned modules that drop into the existing, language-neutral core:
 5. Evidence-based, auditable results.
 6. The knowledge graph is the product.
 
-Built for restricted environments and positioned for future FedRAMP alignment.
+Built for controlled environments where local execution, auditability, and
+offline operation matter.
 
 [JavaParser]: https://javaparser.org/

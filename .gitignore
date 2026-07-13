@@ -4,6 +4,14 @@ target/
 
 # Generated reports and local indexes
 atlas-report/
+.atlas-run/
+
+# Local assistant/tool state
+.claude/
+
+# Release packaging output
+dist/
+release/
 *.mv.db
 *.trace.db
 *.lock.db

@@ -104,6 +104,6 @@ expectations. It is updated as limitations are addressed.
 ## What Code Atlas does **not** claim
 
 - It does not claim complete understanding of any repository.
-- It does not claim FedRAMP authorization, government certification, security
-  accreditation, or vulnerability-free status. It is **designed for** offline and
-  restricted environments; it is not certified.
+- It does not claim formal authorization, security accreditation, or
+  vulnerability-free status. It is designed for offline and controlled
+  environments; it is not certified.
