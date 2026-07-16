@@ -85,25 +85,30 @@ For the underlying commands and every option, see [Build](#build) and [Run](#run
 - [CURRENT_STATE.md](CURRENT_STATE.md) — factual assessment of what is implemented, build health, and technical risks.
 - [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md) — source evidence, resolution status, and analysis coverage.
 - [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) — the deterministic id grammar, Ada spec/body merge, and collisions.
-- [DATA_LINEAGE.md](DATA_LINEAGE.md) — Java data lineage: rules, confidence, CLI queries, JSON format, gaps.
+- [DATA_LINEAGE.md](DATA_LINEAGE.md) — Java **and Ada** data lineage: rules, confidence, CLI queries, tracing recipes, JSON format, gaps.
 - [PERSISTENCE.md](PERSISTENCE.md) / [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) — file-backed index, scan versioning, parse reuse.
-- [AGENTS.md](AGENTS.md) — the read-only agent tool API, deterministic summaries, and the Orientation and Data-Lineage Investigator agents.
+- [AGENTS.md](AGENTS.md) — the read-only agent tool API and the deterministic agents (Orientation, Data-Lineage Investigator, summaries, onboarding coordinator).
 - [ONBOARDING.md](ONBOARDING.md) — the guided `atlas onboard` workflow: stages, entry points, Java/Ada boundaries, reading order, expert questions, report formats.
 - [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) — what the tool does not (yet) do, and what it does not claim.
 
-## Status — Milestone 1 (Java + Ada vertical slice)
+## Status
 
-This milestone demonstrates the whole pipeline end to end:
+The full pipeline runs end to end, and every capability below is implemented and
+test-enforced:
 
 ```
-scan → parse (Java + Ada) → unified model → link cross-references
-     → local H2 index → analysis → HTML / JSON / CSV reports
+scan → parse (Java, Ada, configuration, build files) → unified model
+     → link cross-references → local H2 index → analysis + data lineage
+     → reports / graphs / deterministic agents / guided onboarding
 ```
 
 It directly answers the platform's core questions on a real repository:
 **what exists, how it connects, what depends on what, what is unused, what is
-risky, how large the system is, and — at component level — where data comes from
-and who consumes it.**
+risky, how large the system is, where data comes from and who consumes it, and —
+for a developer arriving cold — where to start.**
+
+**16 Maven modules · 153 passing tests · `mvn clean install` green · no AI, no
+network, no writes into the analyzed repository.**
 
 ### What works today
 
@@ -124,7 +129,7 @@ and who consumes it.**
 | **Resolution status** | Relationships expose `DISCOVERED` / `RESOLVED` / `INFERRED` / `UNRESOLVED` so uncertainty is explicit (see [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md)) |
 | **Reports** | Self-contained **HTML** dashboard (offline, no CDN/scripts), plus **JSON** and **CSV** |
 | **Graph exports** | `atlas graph --type <dependency\|call\|dead-code\|architecture> --format <dot\|svg>` — deterministic Graphviz DOT and self-contained SVG views over the persisted model (risk-coloured coupling, call graph, active-vs-dead, role layers) |
-| **Agent tool API** | `atlas tool <operation>` / `AtlasToolApi`: a controlled, **database-level read-only** query boundary over the persisted index (callers, dependents, lineage, impact, dead code, summary) with stable ids, evidence and honest `supported=false` for missing capabilities — see [AGENTS.md](AGENTS.md) |
+| **Agent tool API** | `atlas tool <operation>` / `AtlasToolApi`: a controlled, **database-level read-only** query boundary over the persisted index (callers, dependents, members, lineage, impact, dead code, complexity, build membership, configuration references, summary) with stable ids and evidence on every result. **Every operation is implemented**; a question this repository has no facts for returns supported-but-empty *with the reason*, never a silent empty list — see [AGENTS.md](AGENTS.md) |
 | **Deterministic agents** | `atlas orient` (where do I start / what's central / what couldn't be analyzed), `atlas summarize <id>` (method/component summaries) and `atlas investigate <id>` (where data originates, what transforms it, where it's stored, who consumes it, what's unresolved — with the numbered confirmed path) — **templates over the tool API, no LLM**, confirmed facts separated from labelled inferences, every statement citing stable ids and file:line evidence — see [AGENTS.md](AGENTS.md) |
 | **Guided onboarding** | `atlas onboard <repo>` — one command runs a twelve-stage, deterministic investigation and writes an evidence-backed onboarding package (JSON + self-contained HTML): scan health, inventory, **Java & Ada entry points**, architecture orientation, **Java↔Ada boundary discovery** (JNI/native, process, message, shared-data — never name-similarity alone), representative lineage paths, central components, risks & gaps, a suggested reading order, and grounded questions for subject-matter experts. Read-only; reuses the existing agents; no AI — see [ONBOARDING.md](ONBOARDING.md) |
 | **CLI** | `atlas scan <repo>` — single runnable jar, no install |
@@ -231,19 +236,20 @@ changes, no rebuild of the platform.**
 
 ## Roadmap (per the platform spec)
 
-Planned modules that drop into the existing, language-neutral core (configuration
-parsing, graph exports and deterministic summaries have since landed — see the
-[What works today](#what-works-today) table):
+Everything in the [What works today](#what-works-today) table is implemented. What
+remains — all of it drops into the existing, language-neutral core without changing it:
 
-- **Parsers:** database (SQL/DDL), remaining configuration formats (JSON), custom
-  proprietary formats (`.workflow`, `.mapping`, `.rules`, …), and future languages
-  (C/C++, Python, COBOL, Fortran). Build files (Maven/Gradle/`.gpr`) have landed.
+- **Parsers:** database (SQL/DDL) — the largest remaining gap: it would give lineage a
+  real schema of record instead of inferred table names, and let a table shared by Java
+  and Ada register as a genuine cross-language boundary. Then: JSON configuration,
+  custom proprietary formats (`.workflow`, `.mapping`, `.rules`, …), and further
+  languages (C/C++, Python, COBOL, Fortran).
 - **`atlas-ui`:** interactive dashboard, explorer, graph viewer.
-- **`atlas-ai`:** optional local explanation layer (consumes structured context
-  only; never scans source directly).
-- **Analysis:** unused-package detection, architecture compliance rules, PDF
-  reports, git-history analysis, security mapping. (Change-impact analysis is
-  already available via `atlas tool calculate_change_impact`.)
+- **`atlas-ai`:** optional local explanation layer (consumes structured context only;
+  never scans source directly). The platform is fully useful with it absent.
+- **Analysis:** unused-package detection, architecture compliance rules, PDF reports,
+  git-history analysis, security mapping. Change impact already exists as
+  `atlas tool calculate_change_impact`, though build membership does not yet feed it.
 
 ---
 

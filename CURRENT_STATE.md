@@ -1,12 +1,13 @@
 # Code Atlas — Current-State Assessment
 
-_Assessment date: 2026-07-11. Reflects the repository as inspected, not the
-original prompt. Scope: Milestone 1 codebase plus the analysis-coverage and
-stable-identifier addendum enhancements._
+_Assessment date: 2026-07-16. Reflects the repository as inspected, not the
+original prompt. Scope: the whole codebase — the Java/Ada vertical slice plus the
+analysis-coverage, stable-identifier, persistence, data-lineage, tool-API, agent,
+configuration-parsing, graph-export, guided-onboarding and build-parsing work._
 
-This document is the factual baseline the enhancement addendum requires before any
-architectural change. It records what exists, how healthy the build is, and the
-concrete technical risks that later milestones must address.
+This document is the factual baseline: what exists, how healthy the build is, and
+the concrete technical risks that later milestones must address. It is written to
+be falsifiable — every claim here is checkable against the code or the test suite.
 
 ---
 
@@ -150,9 +151,10 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 
 ## Current build health
 
-- **Build:** `mvn clean install` → **BUILD SUCCESS** (15 modules).
-- **Test:** `mvn test` → **91 tests, 0 failures, 0 errors** across model, scanner,
-  parsers, index, analysis, core, tools and agents.
+- **Build:** `mvn clean install` → **BUILD SUCCESS** (16 modules).
+- **Test:** `mvn test` → **153 tests, 0 failures, 0 errors** across model, scanner,
+  parsers (Java, Ada, configuration, build), index, analysis, core, graph, tools,
+  agents and onboarding.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging
   binding on the test classpath); the CLI ships `slf4j-simple` at runtime.
 - **Determinism:** verified — two scans of the same repo produce byte-identical

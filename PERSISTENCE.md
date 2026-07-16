@@ -16,7 +16,7 @@ server, no administrator privileges, fully offline.
   the analyzed tree untouched (verified by characterization tests).
 - Unit and integration tests use in-memory or temp-directory stores.
 
-## What is stored (schema v2)
+## What is stored (schema v3)
 
 | Table(s) | Contents |
 |---|---|

@@ -2,7 +2,8 @@
 
 Every entity in the model has a **deterministic, location-independent** stable
 identifier. It is the authoritative handle for external references — report links,
-saved searches, suppressions, cross-scan comparison and (future) agent tool calls.
+saved searches, suppressions, cross-scan comparison, and every agent tool call
+(`atlas tool <op> --id <stable-id>`; see [AGENTS.md](AGENTS.md)).
 `Entity.id()` **is** the stable id; `Entity.stableId()` returns the same value.
 
 ## Why

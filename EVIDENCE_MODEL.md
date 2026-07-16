@@ -95,12 +95,27 @@ evidence checks that passed and a confidence score derived from explicit rules
 (visibility, exposure, presence of a same-named unresolved call), capped below
 100%, and always recommending review before removal.
 
-## Roadmap for evidence
+## Evidence enrichment — implemented
 
-Planned enrichment (not yet implemented) per the enhancement addendum:
+The enrichment the enhancement addendum called for is in place:
 
-- Attach structured evidence (parser id + version, analysis rule id, file hash,
-  scan version, confidence, resolution status) to every important finding.
-- Add an `INFERRED` inference pass (naming/convention/architecture rules), clearly
-  labelled and never conflated with resolved facts.
-- Stable, location-independent identifiers so evidence survives incremental scans.
+- **Structured evidence on findings.** Lineage and configuration edges carry the
+  rule that produced them and its version, the analyzer id and version, a
+  rule-derived confidence in `[0,1]`, and `inferred`/`ambiguous` flags — the
+  well-known keys are defined once in `EvidenceKeys`. Files carry a SHA-256 content
+  hash, and every finding is pinned to a content-derived scan id.
+- **An explicit `INFERRED` grade.** `ResolutionStatus` distinguishes `DISCOVERED`,
+  `RESOLVED`, `INFERRED` and `UNRESOLVED`, and the reporting and agent layers keep
+  confirmed facts and labelled inferences in separate buckets — they are never
+  conflated.
+- **Stable, location-independent identifiers**, so evidence survives line movement
+  and incremental rescans — see [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md).
+
+What evidence still does **not** include:
+
+- **Source text is never persisted.** Evidence is locations, hashes and rule ids;
+  reports cite `file:line` ranges rather than embedding code.
+- Entity locations in the persisted model snapshot drop **column numbers** (the
+  parse cache keeps them).
+- **Exception/raise evidence** is not extracted, so "what can this throw?" is not
+  answerable from the model.

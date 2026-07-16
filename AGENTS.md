@@ -1,10 +1,11 @@
-# Code Atlas — Agent Tool API and Agent Plans
+# Code Atlas — Agent Tool API and Agents
 
-**Status: the read-only agent tool API, deterministic summaries, the Repository
-Orientation Agent and the Data-Lineage Investigator Agent are all implemented in
-deterministic mode** — every numbered milestone of the enhancement addendum is
-complete. Nothing in the core platform depends on agents or AI; everything below
-works without either, and no LLM is involved anywhere.
+**Status: everything here is implemented in deterministic mode** — the read-only
+tool API (with *every* operation now answering), deterministic summaries, the
+Repository Orientation Agent, the Data-Lineage Investigator Agent, and the
+Repository Onboarding Coordinator that orchestrates them. Nothing in the core
+platform depends on agents or AI; everything below works without either, and no
+LLM is involved anywhere.
 
 ## The tool boundary
 
@@ -37,7 +38,11 @@ Three states are explicit so an agent can never misread them: `supported=false`
 means the platform cannot answer this kind of question yet (with the reason in
 `note`); an empty `value` with `supported=true` means "the answer is nothing";
 `truncated=true` means limits cut the result and `totalMatches` says how much
-exists. Entities carry stable ids, locations and attributes; edges carry rule id,
+exists. **Every operation is implemented today, so nothing returns
+`supported=false`** — the state stays in the contract so that a future capability
+gap can never be mistaken for an empty answer. Where a question is answerable but
+this repository has no such facts (say, no build files), the result is
+supported-but-empty with the reason in `note`. Entities carry stable ids, locations and attributes; edges carry rule id,
 confidence, resolution status, inferred/ambiguous flags and file:line evidence.
 
 ## Operations
@@ -49,6 +54,7 @@ confidence, resolution status, inferred/ambiguous flags and file:line evidence.
 | `get_source_evidence` | canonical + Ada spec/body locations, file hash | ✅ |
 | `get_callers`, `get_callees` | call-graph neighbors (evidence-bearing lineage edge preferred per pair) | ✅ |
 | `get_dependencies`, `get_dependents` | all resolved usage edges in/out | ✅ |
+| `get_members` | structural members of a container (package → types, type → methods/fields) | ✅ |
 | `get_data_sources`, `get_data_sinks` | DATA_SOURCE / DATA_SINK entities | ✅ |
 | `get_database_references` | edges touching database tables | ✅ |
 | `trace_data_lineage` | full lineage traversal (direction, depth, filters, gaps) | ✅ |
@@ -73,7 +79,7 @@ atlas tool trace_data_lineage --id java:endpoint:POST:/customers --direction dow
 atlas tool get_build_membership --id java:type:com.example.app.App
 ```
 
-## Contract for the coming agents
+## The contract every agent obeys
 
 Agents may explain, investigate, navigate, organize findings, generate
 documentation and recommend review steps. Agents may **not** invent entities,
