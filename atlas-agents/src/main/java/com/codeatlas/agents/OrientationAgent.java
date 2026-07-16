@@ -74,7 +74,7 @@ public final class OrientationAgent {
         return new AgentAnswer("Where should I start?", answer, confirmed, List.of(), evidence,
                 confidence(confirmed.size(), 0),
                 List.of(),
-                List.of("Entry points invoked via build configuration, reflection or schedulers are not detected yet"),
+                List.of("Entry points invoked via reflection or schedulers are not detected yet"),
                 List.of("atlas lineage \"<endpoint or procedure>\" --downstream"));
     }
 
@@ -100,8 +100,8 @@ public final class OrientationAgent {
                 : "The main modules by structural size: " + firstToken(confirmed) + ".";
         return new AgentAnswer("What are the main modules?", answer, confirmed, List.of(), evidence,
                 confidence(confirmed.size(), 0), List.of(),
-                List.of("Module boundaries from build files (Maven modules, GNAT projects) are not parsed yet; "
-                        + "packages are the structural unit shown"),
+                List.of("Packages are the structural unit shown here; build modules (Maven/Gradle/GNAT) "
+                        + "are parsed separately - see 'atlas tool get_build_membership'"),
                 List.of("atlas tool get_members --id <package-id>"));
     }
 
@@ -122,6 +122,17 @@ public final class OrientationAgent {
                 evidence.add(cite(m));
             }
         }
+        // A build file that declares a main unit is the strongest entry-point evidence
+        // there is - no naming or shape heuristic involved.
+        for (Views.EntityView module : api.searchEntities("", "MODULE", null, CANDIDATE_CAP).value()) {
+            for (Views.NeighborView n : api.getDependencies(module.stableId(), CANDIDATE_CAP).value()) {
+                if (n.edge().kind().equals("DECLARES_MAIN")) {
+                    confirmed.add("Build-declared main " + n.entity().qualifiedName() + " (declared by "
+                            + module.attributes().getOrDefault("buildFile", module.name()) + ")");
+                    evidence.add(new AgentAnswer.Citation(n.entity().stableId(), n.edge().evidence()));
+                }
+            }
+        }
         // Ada: procedures reading an input source are likely externally driven.
         for (Views.EntityView source : api.getDataSources().value()) {
             for (Views.NeighborView reader : api.getDependents(source.stableId(), 20).value()) {
@@ -140,7 +151,8 @@ public final class OrientationAgent {
         return new AgentAnswer("What are the likely entry points?", answer, confirmed, inferred, evidence,
                 confidence(confirmed.size(), inferred.size()),
                 List.of(),
-                List.of("Scheduled jobs, message listeners and build-configured mains are not detected yet"),
+                List.of("Scheduled jobs and message listeners are not detected yet; "
+                        + "build-declared mains are detected when a build file declares them"),
                 List.of("atlas tool get_callers --id <entry-point-id>"));
     }
 
@@ -277,15 +289,21 @@ public final class OrientationAgent {
             confirmed.add("unresolved: " + u.fromId() + " -> '" + u.targetName() + "'");
             evidence.add(new AgentAnswer.Citation(u.fromId(), u.location()));
         });
+        // Build membership is answerable now; when a repository declares no build
+        // files, that absence is itself a recorded fact worth surfacing.
         ToolResult<?> build = api.getBuildMembership(null);
+        List<String> limitations = new ArrayList<>();
+        if (!build.note().isBlank()) {
+            limitations.add(build.note());
+        }
+        limitations.add("Reflection, dynamic SQL and runtime configuration are invisible to static analysis");
         return new AgentAnswer("What parts of the repository could not be analyzed?",
-                "Unresolved references and unsupported capabilities are listed below - "
+                "Unresolved references and analysis gaps are listed below - "
                         + "treat absent paths as unknown, not absent.",
                 confirmed, List.of(), evidence,
                 "High - these are the platform's own recorded gaps",
                 List.of("Do the unresolved targets hide additional data flows?"),
-                List.of("Unsupported: " + build.note(),
-                        "Reflection, dynamic SQL and runtime configuration are invisible to static analysis"),
+                limitations,
                 List.of("atlas tool get_unresolved_references --limit 200",
                         "atlas tool get_diagnostics"));
     }

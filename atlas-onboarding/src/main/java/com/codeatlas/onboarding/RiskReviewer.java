@@ -28,7 +28,8 @@ final class RiskReviewer {
             "Dynamic SQL and runtime-built queries are not modeled",
             "Dependency-injection wiring and configuration-driven behavior may add paths not shown",
             "Native / JNI integration is a boundary whose far side is outside the analyzed sources",
-            "Build-system membership is not parsed yet (no Maven/Gradle/.gpr parser)");
+            "Build files are read literally: no property interpolation, no dependency management, "
+                    + "no plugin or script evaluation, so some declared structure may be missed");
 
     private final AtlasToolApi api;
 
@@ -54,22 +55,36 @@ final class RiskReviewer {
                             + "collisions) - these can distort resolution.", List.of()));
         }
 
-        // External dependencies: qualified references (Pkg.Member or Type#member) that
-        // could not be resolved. Restricting to qualified targets avoids flagging simple
-        // unresolved names - language builtins, generic type args and intra-repo
-        // resolution gaps - as external systems.
+        // External dependencies are claimed only where "not in this repository" was
+        // actually checked: a declared build coordinate that the Linker could not
+        // match against any module here is genuinely third-party, and the coordinate
+        // names it exactly.
         TreeSet<String> externals = new TreeSet<>();
-        for (Views.UnresolvedReference u : api.getUnresolvedReferences(CANDIDATE_CAP).value()) {
-            String name = u.targetName();
-            int cut = name.indexOf('#') >= 0 ? name.indexOf('#') : name.indexOf('.');
-            if (cut > 0) {
-                externals.add(name.substring(0, cut));
+        List<Views.UnresolvedReference> unresolved = api.getUnresolvedReferences(CANDIDATE_CAP).value();
+        for (Views.UnresolvedReference u : unresolved) {
+            if (u.kind().equals("DEPENDS_ON")) {
+                externals.add(u.targetName()); // e.g. "org.slf4j:slf4j-api"
             }
         }
         externals.stream().limit(8).forEach(name ->
                 out.add(new OnboardingRisk(RiskCategory.EXTERNAL_DEPENDENCY, "External reference: " + name,
-                        "'" + name + "' is referenced but not part of the analyzed repository - an external "
-                                + "system or library to confirm.", List.of())));
+                        "'" + name + "' is declared as a build dependency but is not a module in this "
+                                + "repository - a third-party library to confirm.", List.of())));
+
+        // Unresolved *code* references are a different thing: Code Atlas does not know
+        // whether they point outside the repository or whether it simply could not
+        // link them. Reporting them as external dependencies would be a guess, so they
+        // are reported as what they are - an analysis gap.
+        long codeUnresolved = unresolved.stream().filter(u -> !u.kind().equals("DEPENDS_ON")).count();
+        if (codeUnresolved > 0) {
+            String examples = unresolved.stream().filter(u -> !u.kind().equals("DEPENDS_ON"))
+                    .map(Views.UnresolvedReference::targetName).distinct().sorted().limit(5)
+                    .reduce((a, b) -> a + ", " + b).orElse("");
+            out.add(new OnboardingRisk(RiskCategory.ANALYSIS_LIMITATION, "Unresolved code references",
+                    codeUnresolved + " reference(s) could not be linked to a target (e.g. " + examples
+                            + "). These may point to libraries outside the repository, or be references "
+                            + "Code Atlas could not resolve - the two are not distinguished.", List.of()));
+        }
 
         // Potential architectural risks: high complexity, weak-evidence central
         // components, and lineage paths with unresolved segments.

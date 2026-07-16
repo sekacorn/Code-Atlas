@@ -44,6 +44,7 @@ public final class Linker {
         Map<String, List<Entity>> callablesByName = new HashMap<>();
         Map<String, List<Entity>> typesByName = new HashMap<>();
         Map<String, List<Entity>> byQualifiedName = new HashMap<>();
+        Map<String, List<Entity>> modulesByKey = new HashMap<>();
 
         for (Entity e : model.entities()) {
             byQualifiedName.computeIfAbsent(e.qualifiedName().toLowerCase(), k -> new ArrayList<>()).add(e);
@@ -51,6 +52,11 @@ public final class Linker {
                 callablesByName.computeIfAbsent(e.name().toLowerCase(), k -> new ArrayList<>()).add(e);
             } else if (TYPES.contains(e.kind())) {
                 typesByName.computeIfAbsent(e.name().toLowerCase(), k -> new ArrayList<>()).add(e);
+            } else if (e.kind() == EntityKind.MODULE) {
+                // A build dependency may name a module by coordinate (group:artifact)
+                // or by bare name (a Gradle/GNAT project), so index both.
+                modulesByKey.computeIfAbsent(e.qualifiedName().toLowerCase(), k -> new ArrayList<>()).add(e);
+                modulesByKey.computeIfAbsent(e.name().toLowerCase(), k -> new ArrayList<>()).add(e);
             }
         }
 
@@ -67,6 +73,10 @@ public final class Linker {
             // by their own analyzers and must not skew the linker's reference stats.
             List<Entity> targets = switch (r.kind()) {
                 case CALLS -> resolveCall(r, callablesByName);
+                // A build-declared main names a compilation unit; it resolves to the
+                // subprogram that defines it, exactly like a call target.
+                case DECLARES_MAIN -> resolveCall(r, callablesByName);
+                case DEPENDS_ON -> resolveModule(r, modulesByKey);
                 case INHERITS, IMPLEMENTS, INSTANTIATES, IMPORTS, RENAMES, REFERENCES, CONFIGURES ->
                         resolveType(r, typesByName, byQualifiedName);
                 default -> null;
@@ -118,6 +128,28 @@ public final class Linker {
                 .filter(c -> paramCount(c) < 0 || paramCount(c) == argCount)
                 .toList();
         return byArity.isEmpty() ? candidates : byArity;
+    }
+
+    /**
+     * Resolves a declared build dependency to a module in <em>this</em> repository.
+     * A coordinate that matches nothing here stays unresolved — that is the honest
+     * signal for a third-party dependency, not a failure.
+     */
+    private List<Entity> resolveModule(Relationship r, Map<String, List<Entity>> modulesByKey) {
+        String target = r.attributes().getOrDefault("typeName", r.toId()).toLowerCase();
+        List<Entity> byKey = modulesByKey.get(target);
+        if (byKey != null) {
+            return byKey;
+        }
+        // "group:artifact" may still name a local module whose own key is just its name.
+        int colon = target.lastIndexOf(':');
+        if (colon >= 0) {
+            List<Entity> byArtifact = modulesByKey.get(target.substring(colon + 1));
+            if (byArtifact != null) {
+                return byArtifact;
+            }
+        }
+        return List.of();
     }
 
     private List<Entity> resolveType(Relationship r, Map<String, List<Entity>> typesByName,

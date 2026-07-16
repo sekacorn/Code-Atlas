@@ -54,10 +54,24 @@ public final class ConfigParser implements RepositoryParser {
 
     @Override
     public boolean supports(ParseRequest request) {
+        // Build descriptors are owned by the build parser, which extracts modules,
+        // dependencies and declared mains from them. The pipeline gives each file to
+        // exactly one parser, so this boundary is explicit rather than left to
+        // classpath order. (Checked here by name to keep the two parsers independent.)
+        if (isBuildFile(request.relativePath())) {
+            return false;
+        }
         return switch (request.extension()) {
             case "xml", "properties", "yaml", "yml" -> true;
             default -> false;
         };
+    }
+
+    /** Mirrors {@code atlas-parser-build}'s ownership; kept local to avoid a module dependency. */
+    private static boolean isBuildFile(String relativePath) {
+        String name = fileName(relativePath).toLowerCase(java.util.Locale.ROOT);
+        return name.equals("pom.xml") || name.startsWith("build.gradle")
+                || name.startsWith("settings.gradle") || name.endsWith(".gpr");
     }
 
     @Override

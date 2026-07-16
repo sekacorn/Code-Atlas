@@ -24,6 +24,7 @@ final class SystemInventoryBuilder {
 
     SystemInventory build() {
         List<SystemInventory.Category> categories = new ArrayList<>();
+        categories.add(category("Build modules", "MODULE", null));
         categories.add(category("Java packages", "PACKAGE", "java"));
         categories.add(union("Java classes & interfaces", "java", "CLASS", "INTERFACE", "RECORD", "ENUM"));
         categories.add(category("REST endpoints", "ENDPOINT", null));

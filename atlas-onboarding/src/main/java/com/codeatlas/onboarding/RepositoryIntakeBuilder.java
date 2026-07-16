@@ -36,19 +36,26 @@ final class RepositoryIntakeBuilder {
                 summary.totalFiles());
     }
 
-    /** Build systems detected from build-file names among the scanned files. */
+    /**
+     * Build systems, taken from the modules the build parser actually understood —
+     * a parsed module is stronger evidence than a file name. Build files with no
+     * parser (Make/CMake) are still surfaced by name, marked as unparsed.
+     */
     private List<String> buildSystems() {
         TreeSet<String> systems = new TreeSet<>();
+        for (Views.EntityView m : api.searchEntities("", "MODULE", null, CANDIDATE_CAP).value()) {
+            switch (m.attributes().getOrDefault("buildSystem", "")) {
+                case "maven" -> systems.add("Maven");
+                case "gradle" -> systems.add("Gradle");
+                case "gnat" -> systems.add("GNAT project (GPRbuild)");
+                default -> {
+                }
+            }
+        }
         for (Views.EntityView f : api.searchEntities("", "FILE", null, CANDIDATE_CAP).value()) {
             String n = f.name().toLowerCase(Locale.ROOT);
-            if (n.equals("pom.xml")) {
-                systems.add("Maven");
-            } else if (n.startsWith("build.gradle") || n.equals("settings.gradle")) {
-                systems.add("Gradle");
-            } else if (n.endsWith(".gpr")) {
-                systems.add("GNAT project (GPRbuild)");
-            } else if (n.equals("makefile") || n.equals("cmakelists.txt")) {
-                systems.add("Make/CMake");
+            if (n.equals("makefile") || n.equals("cmakelists.txt")) {
+                systems.add("Make/CMake (not parsed)");
             }
         }
         return new ArrayList<>(systems);

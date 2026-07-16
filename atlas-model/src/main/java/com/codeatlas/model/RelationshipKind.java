@@ -21,6 +21,12 @@ public enum RelationshipKind {
     IMPORTS,
     /** A module or unit depends on another. */
     DEPENDS_ON,
+    /**
+     * A build project declares a unit as an executable entry point (e.g. a GNAT
+     * project's {@code for Main use (...)}). This is a <em>declared</em> entry
+     * point — stronger evidence than any naming or shape heuristic.
+     */
+    DECLARES_MAIN,
     /** Configuration wires up a code entity. */
     CONFIGURES,
     /** General use relationship when nothing more specific applies. */

@@ -195,7 +195,8 @@ public final class OnboardingReport {
 
     private static String entryJson(EntryPointSummary e) {
         return "{\"stableId\": " + q(e.stableId()) + ", \"displayName\": " + q(e.displayName())
-                + ", \"language\": " + q(e.language()) + ", \"type\": " + q(e.type())
+                + ", \"language\": " + q(e.language()) + ", \"category\": " + q(e.category().name())
+                + ", \"type\": " + q(e.type())
                 + ", \"location\": " + q(e.location()) + ", \"confidence\": " + q(e.confidence())
                 + ", \"resolutionStatus\": " + q(e.resolutionStatus())
                 + ", \"evidence\": " + refArr(e.evidence()) + "}";

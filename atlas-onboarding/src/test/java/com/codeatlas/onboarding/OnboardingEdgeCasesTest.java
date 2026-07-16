@@ -45,6 +45,25 @@ class OnboardingEdgeCasesTest {
     }
 
     @Test
+    void withoutABuildFileTheAdaMainFallsBackToTheInferredShapeHeuristic(@TempDir Path work)
+            throws IOException {
+        // No .gpr declares an entry point here, so the top-level parameterless
+        // procedure is still surfaced — but honestly labelled as an inference.
+        Path repo = work.resolve("repo");
+        Files.createDirectories(repo.resolve("ada"));
+        Files.writeString(repo.resolve("ada/mission_main.adb"),
+                "procedure Mission_Main is\nbegin\n   null;\nend Mission_Main;\n");
+        OnboardingResult result = onboard(repo, work.resolve("index").resolve("atlas"));
+
+        var main = result.entryPoints().stream()
+                .filter(e -> e.stableId().equals("ada:procedure:Mission_Main")).findFirst()
+                .orElseThrow(() -> new AssertionError("the Ada main was not identified"));
+        assertTrue(main.type().startsWith("Ada main"), main.type());
+        assertEquals("INFERRED", main.resolutionStatus(),
+                "without a build declaration the main is an inference, and says so");
+    }
+
+    @Test
     void failedScanStillProducesAnHonestLimitedReport(@TempDir Path work) throws IOException {
         // A repository with only an unparseable file: the scan completes but nothing
         // is analyzed. Onboarding must still produce a full, honest report labelled FAILED.

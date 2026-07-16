@@ -25,6 +25,7 @@
         <module>atlas-parser-java</module>
         <module>atlas-parser-ada</module>
         <module>atlas-parser-config</module>
+        <module>atlas-parser-build</module>
         <module>atlas-index</module>
         <module>atlas-analysis</module>
         <module>atlas-reporting</module>
@@ -80,6 +81,11 @@
             <dependency>
                 <groupId>com.codeatlas</groupId>
                 <artifactId>atlas-parser-config</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.codeatlas</groupId>
+                <artifactId>atlas-parser-build</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

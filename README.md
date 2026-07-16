@@ -112,6 +112,7 @@ and who consumes it.**
 | **Repository scanner** | Recursive walk, default exclusions (`.git`, `target`, `build`, `out`, `node_modules`, `bin`, `obj`, …), language/type detection, SHA-256 hashing, parallel processing |
 | **Java parser** | Packages, classes, interfaces, enums, records, methods, constructors, fields, imports, inheritance/implements, method calls, instantiations, type references, cyclomatic complexity, exposure heuristics (annotations, `main`, visibility) — built on [JavaParser] |
 | **Configuration parser** | XML (Spring/JEE beans, XXE-safe), `.properties` and YAML → `CONFIGURATION` entities and `CONFIGURES` references to the classes they wire up; framework-wired classes are no longer flagged as dead code; likely secrets are masked and never stored |
+| **Build-file parser** | Maven `pom.xml` (XXE-safe), Gradle `build.gradle[.kts]`/`settings.gradle[.kts]` and GNAT `.gpr` → **modules** with coordinates, declared **dependencies** (linked module→module inside the repo; third-party coordinates stay honestly unresolved, never fabricated as nodes) and **declared main units**. Every file is assigned to the module that owns it, so `get_build_membership` answers and a **GNAT-declared main is an entry point, not dead code**. Read literally — nothing is resolved, fetched or executed |
 | **Ada / SPARK parser** | `.ads`/`.adb`: packages & child packages, procedures, functions, types (record/enum/access/derived), tasks, protected types, exceptions, `with` dependencies, renamings, generic instantiations, **SPARK Pre/Post contracts**, cyclomatic complexity — deterministic line-and-scope scanner, no native toolchain required |
 | **Unified model** | Language-neutral entities & relationships with **deterministic, location-independent stable ids** (`java:type:…`, `ada:function:…(Integer)`), Ada spec/body merged into one identity, and source locations kept as evidence — see [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) |
 | **Cross-reference linker** | Resolves symbolic call/type targets across files; conservative on ambiguity so dead-code is never overstated |
@@ -208,6 +209,7 @@ Repository → Scanner → Parser framework (plugins) → Unified model
 | `atlas-parser-java` | Java extraction (JavaParser) |
 | `atlas-parser-ada` | Ada / SPARK extraction |
 | `atlas-parser-config` | Configuration extraction (XML/`.properties`/YAML) |
+| `atlas-parser-build` | Build-file extraction (Maven / Gradle / GNAT `.gpr`) |
 | `atlas-index` | H2-backed store + incremental change detection |
 | `atlas-analysis` | Metrics, complexity, dead-code, dependency, data-lineage analysis |
 | `atlas-reporting` | HTML / JSON / CSV generation |
@@ -233,9 +235,9 @@ Planned modules that drop into the existing, language-neutral core (configuratio
 parsing, graph exports and deterministic summaries have since landed — see the
 [What works today](#what-works-today) table):
 
-- **Parsers:** database (SQL/DDL), Ada `.gpr` build files, remaining configuration
-  formats (JSON), custom proprietary formats (`.workflow`, `.mapping`, `.rules`, …),
-  and future languages (C/C++, Python, COBOL, Fortran).
+- **Parsers:** database (SQL/DDL), remaining configuration formats (JSON), custom
+  proprietary formats (`.workflow`, `.mapping`, `.rules`, …), and future languages
+  (C/C++, Python, COBOL, Fortran). Build files (Maven/Gradle/`.gpr`) have landed.
 - **`atlas-ui`:** interactive dashboard, explorer, graph viewer.
 - **`atlas-ai`:** optional local explanation layer (consumes structured context
   only; never scans source directly).

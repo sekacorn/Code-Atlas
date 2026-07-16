@@ -25,6 +25,15 @@ concrete technical risks that later milestones must address.
   SAX), `.properties` and YAML → `CONFIGURATION` entities + `CONFIGURES` code
   references (config key + location evidence); feeds dead-code (wired classes are not
   dead) and `get_configuration_references`; secrets masked, never stored.
+- **Build-file parser** (`atlas-parser-build`): Maven `pom.xml` (XXE-hardened SAX),
+  Gradle `build.gradle[.kts]`/`settings.gradle[.kts]` and GNAT `.gpr` → `MODULE`
+  entities with coordinates, declared dependencies (`DEPENDS_ON`, resolved to a local
+  module when one matches, otherwise left unresolved as an honest third-party
+  coordinate) and **declared main units** (`DECLARES_MAIN`, resolved to the subprogram
+  that defines them). A cross-file linker assigns every file to the deepest module
+  whose directory contains it, which makes `get_build_membership` answerable and stops
+  a GNAT-declared main being reported as dead code. Read literally: nothing is
+  resolved, fetched or executed.
 - **Ada/SPARK parser** (`atlas-parser-ada`): deterministic line-and-scope scanner
   for `.ads`/`.adb` — packages & child packages, procedures, functions, types
   (record/enum/access/derived), tasks, protected types, exceptions, `with`
@@ -92,9 +101,12 @@ concrete technical risks that later milestones must address.
   endpoint→…→table; Ada: console→procedure→transformation→package state→output;
   per-edge rule ids, confidence, resolution status, gaps, CLI/JSON/HTML — see
   DATA_LINEAGE.md). Still missing: config/SQL parser input to lineage.
-- Database (SQL/DDL), build (`.gpr`, Maven/Gradle) and custom-format parsers.
-  (Configuration XML/YAML/properties parsing is now implemented; JSON config is not.)
-- Build membership feeding dead-code / entry-point / impact analysis.
+- Database (SQL/DDL) and custom-format parsers. (Configuration XML/YAML/properties and
+  build files (Maven/Gradle/`.gpr`) are now implemented; JSON config is not.)
+- ~~Build membership feeding dead-code / entry-point analysis~~ **Done**: files are
+  assigned to their owning module, `get_build_membership` answers, and a build-declared
+  main is an entry point rather than a dead-code candidate. Build membership does not
+  yet feed `calculate_change_impact`.
 - ~~Read-only agent tool API~~ ~~Orientation Agent + summaries~~ ~~Data-Lineage
   Investigator Agent~~ **All done** (see AGENTS.md). A dedicated Impact agent
   remains optional future work (the `calculate_change_impact` tool op exists).
@@ -168,9 +180,12 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
    scan records; a failed scan never replaces the last completed snapshot.
 5. **Missing evidence richness.** No parser/rule versioning or file-hash provenance
    attached to findings yet.
-6. **Build-context blindness.** Build files are not parsed, so dead-code and
-   entry-point detection cannot use build membership → possible false positives for
-   framework/reflection/DI-invoked code.
+6. **Build-context blindness — largely closed.** Maven/Gradle/GNAT files are parsed:
+   every file is assigned to its owning module and a GNAT-declared main is an entry
+   point (no longer a dead-code false positive). Residual risk: build files are read
+   literally, so behaviour expressed through property interpolation, dependency
+   management, version catalogs or scenario variables is still invisible, and
+   reflection/DI-invoked code remains a false-positive source.
 7. **Unsupported constructs.** Ada scanner is line-based and will miss constructs
    spanning unusual formatting; unsupported languages are detected but not parsed.
 8. **Performance.** Whole-file re-parse each run; entire model held in memory.

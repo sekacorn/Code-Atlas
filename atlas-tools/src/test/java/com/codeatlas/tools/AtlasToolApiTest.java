@@ -133,15 +133,19 @@ class AtlasToolApiTest {
     }
 
     @Test
-    void unsupportedOperationsSaySoInsteadOfReturningEmpty(@TempDir Path repo, @TempDir Path indexDir)
+    void absenceIsStatedExplicitlyInsteadOfReturningSilentEmpties(@TempDir Path repo, @TempDir Path indexDir)
             throws IOException {
         Path index = scannedCustomerIndex(repo, indexDir);
         try (AtlasToolApi api = AtlasToolApi.open(index)) {
+            // Build membership is implemented now (Maven/Gradle/.gpr are parsed). This
+            // fixture declares no build files, so the answer is supported-but-empty
+            // with the reason stated — never a silent empty that could be misread as
+            // "this entity belongs to no module".
             var build = api.getBuildMembership("java:type:com.example.customer.CustomerEntity");
-            assertFalse(build.supported(), "missing capability must be explicit");
-            assertTrue(build.note().contains("not implemented"));
-            // Configuration references are now supported (this fixture has no config,
-            // so the answer is an empty-but-supported list, not "unsupported").
+            assertTrue(build.supported(), "build membership is implemented");
+            assertTrue(build.value().isEmpty());
+            assertTrue(build.note().toLowerCase().contains("no build files"), build.note());
+            // Configuration references are likewise supported (no config in this fixture).
             var config = api.getConfigurationReferences(null, 50);
             assertTrue(config.supported(), "configuration references are implemented");
         }

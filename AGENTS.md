@@ -56,7 +56,7 @@ confidence, resolution status, inferred/ambiguous flags and file:line evidence.
 | `find_dead_code_candidates`, `get_complexity` | analysis findings with evidence | ✅ |
 | `get_repository_summary` | headline facts for orientation | ✅ |
 | `get_unresolved_references`, `get_diagnostics` | honest gaps and scan-time diagnostics | ✅ |
-| `get_build_membership` | — | ⛔ `supported=false` until build-file parsing exists |
+| `get_build_membership` | the build module that owns an entity, resolved through the file it lives in (Maven / Gradle / GNAT) | ✅ |
 | `get_configuration_references` | config → code references (CONFIGURES edges) with the config key and location | ✅ |
 
 Dead-code and complexity views are computed over the persisted model with the
@@ -70,7 +70,7 @@ atlas tool get_repository_summary --repo /path/to/repo
 atlas tool get_callers --id "java:method:com.example.CustomerService#createCustomer(CustomerRequest)"
 atlas tool calculate_change_impact --id sql:table:customer
 atlas tool trace_data_lineage --id java:endpoint:POST:/customers --direction downstream
-atlas tool get_build_membership --id …        # returns supported=false + reason
+atlas tool get_build_membership --id java:type:com.example.app.App
 ```
 
 ## Contract for the coming agents

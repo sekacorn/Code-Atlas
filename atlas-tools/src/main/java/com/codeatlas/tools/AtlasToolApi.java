@@ -67,7 +67,8 @@ public final class AtlasToolApi implements AutoCloseable {
             RelationshipKind.USES, RelationshipKind.IMPORTS, RelationshipKind.DEPENDS_ON,
             RelationshipKind.CONSUMES, RelationshipKind.PRODUCES, RelationshipKind.READS_FROM,
             RelationshipKind.WRITES_TO, RelationshipKind.MAPS_TO, RelationshipKind.PERSISTS_TO,
-            RelationshipKind.VALIDATED_BY, RelationshipKind.MANAGES, RelationshipKind.RENAMES);
+            RelationshipKind.VALIDATED_BY, RelationshipKind.MANAGES, RelationshipKind.RENAMES,
+            RelationshipKind.DECLARES_MAIN);
 
     private static final Set<RelationshipKind> CALL_KINDS =
             EnumSet.of(RelationshipKind.CALLS, RelationshipKind.INVOKES);
@@ -329,9 +330,20 @@ public final class AtlasToolApi implements AutoCloseable {
                 a.deadCode().size(), a.complexityHotspots().size(), unresolved, diagnostics.size()));
     }
 
+    /**
+     * References the Linker could <em>not</em> resolve.
+     *
+     * <p>The Linker preserves each original symbolic edge for auditability and adds a
+     * resolved edge beside it, so an unresolved-looking edge may in fact have been
+     * resolved. Those originals are excluded here: an "unresolved reference" must
+     * mean the target was genuinely not found, or the count contradicts the scan's
+     * own coverage numbers.
+     */
     public ToolResult<List<Views.UnresolvedReference>> getUnresolvedReferences(int limit) {
+        Set<String> resolvedTwins = resolvedTwinKeys();
         List<Views.UnresolvedReference> all = model.relationships().stream()
                 .filter(r -> !r.resolved())
+                .filter(r -> !resolvedTwins.contains(twinKey(r)))
                 .sorted(Comparator.comparing(Relationship::fromId)
                         .thenComparing(Relationship::toId)
                         .thenComparing(r -> r.kind().name()))
@@ -354,6 +366,7 @@ public final class AtlasToolApi implements AutoCloseable {
      * scan report an honest resolution rate without re-running the pipeline.
      */
     public ToolResult<Views.ReferenceCounts> getReferenceCounts() {
+        Set<String> resolvedTwins = resolvedTwinKeys();
         int resolved = 0;
         int unresolved = 0;
         int ambiguous = 0;
@@ -363,6 +376,11 @@ public final class AtlasToolApi implements AutoCloseable {
             }
             if (r.resolved()) {
                 resolved++;
+            } else if (resolvedTwins.contains(twinKey(r))) {
+                // The Linker kept this original beside the resolved edge it produced;
+                // counting it as unresolved would double-count a reference that
+                // actually resolved.
+                continue;
             } else if ("true".equals(r.attributes().get(EvidenceKeys.AMBIGUOUS))) {
                 ambiguous++;
             } else {
@@ -370,6 +388,33 @@ public final class AtlasToolApi implements AutoCloseable {
             }
         }
         return ToolResult.of(scanId(), new Views.ReferenceCounts(resolved, unresolved, ambiguous));
+    }
+
+    /**
+     * Keys of symbolic references the Linker successfully resolved. The Linker copies
+     * an original's evidence (including its {@code callName}/{@code typeName}) onto
+     * the resolved edge, so a resolved edge and the original it came from share a key.
+     */
+    private Set<String> resolvedTwinKeys() {
+        Set<String> keys = new HashSet<>();
+        for (Relationship r : model.relationships()) {
+            if (r.resolved()) {
+                String key = twinKey(r);
+                if (key != null) {
+                    keys.add(key);
+                }
+            }
+        }
+        return keys;
+    }
+
+    /** Identity of a symbolic reference: its source, kind and the name it named. */
+    private static String twinKey(Relationship r) {
+        String name = r.attributes().get(EvidenceKeys.CALL_NAME);
+        if (name == null) {
+            name = r.attributes().get(EvidenceKeys.TYPE_NAME);
+        }
+        return name == null ? null : r.fromId() + "|" + r.kind() + "|" + name;
     }
 
     // ---- impact ----
@@ -463,19 +508,70 @@ public final class AtlasToolApi implements AutoCloseable {
                         + r.location().map(l -> " (" + l + ")").orElse(""))
                 .sorted().distinct().limit(Math.max(1, limit)).toList();
 
-        String limitations = "Build membership and configuration references are not assessed "
-                + "(no build/config parsers yet); reflection, dependency injection wiring and "
-                + "dynamic paths may add impact Code Atlas cannot see.";
+        String limitations = "Reflection, dependency injection wiring and dynamic paths may add "
+                + "impact Code Atlas cannot see. Build membership and configuration references are "
+                + "available separately (get_build_membership, get_configuration_references) and are "
+                + "not folded into this assessment.";
         return ToolResult.of(scanId(), new Views.ImpactView(stableId, direct, indirect,
                 List.copyOf(databaseImpact), lineageIds, risks, limitations), truncated, -1, "");
     }
 
-    // ---- honestly unsupported (no build/config parsers yet) ----
-
+    /**
+     * Which build module owns an entity — resolved through the file it lives in,
+     * since build membership is a property of the file's location in the tree. With
+     * a {@code null} id, returns every module→file membership edge.
+     *
+     * <p>An entity in a file that no module directory covers yields an empty (but
+     * supported) answer: unowned, not unknown.
+     */
     public ToolResult<List<Views.NeighborView>> getBuildMembership(String stableId) {
-        return ToolResult.unsupported(scanId(), List.of(),
-                "Build-system parsing (Maven/Gradle/.gpr) is not implemented yet; "
-                        + "build membership cannot be answered");
+        if (model.entitiesOfKind(EntityKind.MODULE).isEmpty()) {
+            return ToolResult.of(scanId(), List.of(), false, 0,
+                    "No build files (Maven/Gradle/.gpr) were found in this repository, "
+                            + "so nothing declares module membership");
+        }
+        if (stableId == null) {
+            List<Views.NeighborView> all = moduleFileEdges()
+                    .map(r -> model.entity(r.fromId())
+                            .map(m -> new Views.NeighborView(Views.EntityView.of(m), Views.EdgeView.of(r)))
+                            .orElse(null))
+                    .filter(n -> n != null)
+                    .toList();
+            return limited(all, DEFAULT_LIMIT);
+        }
+        Entity entity = model.entity(stableId).orElse(null);
+        if (entity == null) {
+            return ToolResult.of(scanId(), List.of(), false, 0,
+                    "no entity with stable id '" + stableId + "'");
+        }
+        // An entity belongs to the module that owns its file (a module owns itself).
+        String fileId = entity.kind() == EntityKind.FILE ? entity.id()
+                : entity.location().map(l -> "file:" + l.filePath()).orElse(null);
+        if (fileId == null) {
+            return ToolResult.of(scanId(), List.of(), false, 0,
+                    "'" + stableId + "' has no source location, so its module cannot be determined");
+        }
+        List<Views.NeighborView> owners = model.incoming(fileId).stream()
+                .filter(r -> r.kind() == RelationshipKind.CONTAINS)
+                .filter(r -> model.entity(r.fromId()).map(e -> e.kind() == EntityKind.MODULE).orElse(false))
+                .sorted(Comparator.comparing(Relationship::fromId))
+                .map(r -> model.entity(r.fromId())
+                        .map(m -> new Views.NeighborView(Views.EntityView.of(m), Views.EdgeView.of(r)))
+                        .orElse(null))
+                .filter(n -> n != null)
+                .toList();
+        return owners.isEmpty()
+                ? ToolResult.of(scanId(), List.of(), false, 0,
+                        "'" + stableId + "' is not inside any build module's directory")
+                : ToolResult.of(scanId(), owners, false, owners.size());
+    }
+
+    private java.util.stream.Stream<Relationship> moduleFileEdges() {
+        return model.relationships().stream()
+                .filter(r -> r.kind() == RelationshipKind.CONTAINS)
+                .filter(r -> model.entity(r.fromId()).map(e -> e.kind() == EntityKind.MODULE).orElse(false))
+                .filter(r -> model.entity(r.toId()).map(e -> e.kind() == EntityKind.FILE).orElse(false))
+                .sorted(Comparator.comparing(Relationship::fromId).thenComparing(Relationship::toId));
     }
 
     /**

@@ -40,9 +40,16 @@ expectations. It is updated as limitations are addressed.
   config is not parsed; only dotted class-name *values* become references (SpEL,
   placeholder-indirected and annotation-scanned beans are not followed); the YAML
   reader is minimal (no anchors/flow collections); config values are not yet lineage
-  data sources. No database (SQL/DDL) or build-file (`.gpr`, Maven/Gradle) parsing
-  yet — so `get_build_membership` stays unsupported and build membership does not
-  inform entry-point/dead-code detection.
+  data sources.
+- **Build files** (Maven `pom.xml`, Gradle `build.gradle[.kts]`/`settings.gradle[.kts]`,
+  GNAT `.gpr`) are parsed into modules, declared dependencies and declared main units,
+  and every file is assigned to the module that owns it. They are read **literally**:
+  no Maven/Gradle resolution or script evaluation ever runs. So property interpolation
+  (`${...}`), `<dependencyManagement>`/parent-inherited dependency versions, profiles,
+  Gradle version catalogs (`libs.foo`), `ext` properties and plugin-injected
+  dependencies are **not** resolved; GNAT variables, scenario variables
+  (`external(...)`) and `package` blocks are not evaluated. Only literal declarations
+  are recorded. **No database (SQL/DDL) parsing** yet.
 
 ## Analysis
 
@@ -77,8 +84,13 @@ expectations. It is updated as limitations are addressed.
 
 ## Agent tool API
 
-- `get_configuration_references` is now supported (configuration parsing exists);
-  `get_build_membership` still returns `supported=false` until build-file parsing exists.
+- Every operation is now implemented: `get_configuration_references` (configuration
+  parsing) and `get_build_membership` (build-file parsing) both answer. A repository
+  that declares no build files gets an explicit "no build files were found" note
+  rather than a silent empty answer.
+- An entity in a file that no module directory covers is reported **unowned**, not
+  unknown; membership is by directory nesting, so a file outside every module's
+  directory has no owner.
 - Dead-code/complexity served through the tool API use the default analysis
   thresholds; a scan run with custom thresholds may report different counts.
 - Change impact states its blind spots explicitly (no build/config membership;
@@ -121,6 +133,13 @@ expectations. It is updated as limitations are addressed.
 - **Scan health for a reused scan is derived from the persisted model** (file buckets
   and resolution rate are approximate and labelled as derived); exact counts require a
   fresh scan.
+- **Entry points** are strongest when a build file declares them (a GNAT
+  `for Main use (...)` yields a DISCOVERED main); without one, an Ada main falls back
+  to the top-level-parameterless-procedure shape and is labelled INFERRED.
+- **"External dependency" is only claimed where it was checked**: a declared build
+  coordinate that matched no module in this repository. Unresolved *code* references
+  are reported as an analysis gap instead, because Code Atlas cannot tell a
+  third-party call from a reference it simply failed to link.
 - Entity scanning caps at **1000 per kind**. Onboarding writes reports **outside** the
   analyzed repository and never modifies, patches, deletes, commits, executes or
   uploads anything. See [ONBOARDING.md](ONBOARDING.md).

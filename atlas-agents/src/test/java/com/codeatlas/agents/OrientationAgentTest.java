@@ -93,8 +93,12 @@ class OrientationAgentTest {
             AgentAnswer gaps = new OrientationAgent(api).orient().answers().get(7);
             assertTrue(gaps.confirmedFacts().stream().anyMatch(f -> f.contains("could not be resolved")),
                     gaps.confirmedFacts().toString());
-            assertTrue(gaps.knownLimitations().stream().anyMatch(l -> l.contains("not implemented")),
-                    "unsupported capabilities must be quoted: " + gaps.knownLimitations());
+            // This fixture declares no build files, so build membership is unknown for
+            // it — that absence must be quoted, not silently dropped.
+            assertTrue(gaps.knownLimitations().stream().anyMatch(l -> l.contains("No build files")),
+                    "a missing build declaration must be quoted: " + gaps.knownLimitations());
+            assertTrue(gaps.knownLimitations().stream().anyMatch(l -> l.contains("Reflection")),
+                    "standing static-analysis blind spots must be quoted: " + gaps.knownLimitations());
         }
     }
 

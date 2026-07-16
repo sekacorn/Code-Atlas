@@ -61,7 +61,7 @@ final class LineageSampler {
         Set<String> starts = new TreeSet<>();
         api.searchEntities("", "ENDPOINT", null, CANDIDATE_CAP).value().forEach(e -> starts.add(e.stableId()));
         api.getDataSources().value().forEach(e -> starts.add(e.stableId()));
-        entryPoints.stream().filter(e -> e.language().equals("ada") && e.type().startsWith("Ada main"))
+        entryPoints.stream().filter(e -> e.isMain() && e.language().equals("ada"))
                 .forEach(e -> starts.add(e.stableId()));
 
         List<Scored> scored = new ArrayList<>();

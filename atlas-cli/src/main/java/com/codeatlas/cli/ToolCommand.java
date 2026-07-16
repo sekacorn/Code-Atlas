@@ -23,7 +23,7 @@ import java.util.concurrent.Callable;
  * get_data_sinks, get_database_references, trace_data_lineage,
  * calculate_change_impact, find_dead_code_candidates, get_complexity,
  * get_repository_summary, get_unresolved_references, get_diagnostics,
- * get_build_membership (unsupported), get_configuration_references (unsupported).
+ * get_build_membership, get_configuration_references.
  */
 @Command(name = "tool",
         mixinStandardHelpOptions = true,

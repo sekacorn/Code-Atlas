@@ -2,6 +2,7 @@ package com.codeatlas.onboarding;
 
 import com.codeatlas.onboarding.model.BoundarySummary;
 import com.codeatlas.onboarding.model.CentralComponentSummary;
+import com.codeatlas.onboarding.model.EntryPointCategory;
 import com.codeatlas.onboarding.model.EntryPointSummary;
 import com.codeatlas.onboarding.model.EvidenceRef;
 import com.codeatlas.onboarding.model.ExpertQuestion;
@@ -130,7 +131,7 @@ final class ExpertQuestionGenerator {
     private java.util.Optional<ExpertQuestion> securityQuestion(List<EntryPointSummary> entryPoints) {
         // Prefer an HTTP endpoint; otherwise a detected external input source.
         java.util.Optional<EntryPointSummary> endpoint = entryPoints.stream()
-                .filter(e -> e.type().startsWith("REST")).findFirst();
+                .filter(e -> e.category() == EntryPointCategory.ENDPOINT).findFirst();
         if (endpoint.isPresent()) {
             EntryPointSummary e = endpoint.get();
             return java.util.Optional.of(new ExpertQuestion("Cybersecurity engineer",

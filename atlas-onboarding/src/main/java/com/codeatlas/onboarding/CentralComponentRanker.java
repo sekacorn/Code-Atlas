@@ -3,6 +3,7 @@ package com.codeatlas.onboarding;
 import com.codeatlas.model.Entity;
 import com.codeatlas.onboarding.model.BoundarySummary;
 import com.codeatlas.onboarding.model.CentralComponentSummary;
+import com.codeatlas.onboarding.model.EntryPointCategory;
 import com.codeatlas.onboarding.model.EntryPointSummary;
 import com.codeatlas.onboarding.model.EvidenceRef;
 import com.codeatlas.onboarding.model.OnboardingOptions;
@@ -190,7 +191,7 @@ final class CentralComponentRanker {
                 owners.add(typeIdOf(e.stableId()));
             }
             // An endpoint's handler is its second evidence ref; its owner class hosts it.
-            if (e.type().startsWith("REST") && e.evidence().size() > 1) {
+            if (e.category() == EntryPointCategory.ENDPOINT && e.evidence().size() > 1) {
                 String handler = e.evidence().get(1).stableId();
                 if (handler.startsWith("java:method:")) {
                     owners.add(typeIdOf(handler));

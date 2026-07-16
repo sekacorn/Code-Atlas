@@ -111,4 +111,23 @@ class ConfigParserTest {
         // A CONFIGURATION entity is still produced.
         assertTrue(r.entities().stream().anyMatch(e -> e.kind() == EntityKind.CONFIGURATION));
     }
+
+    @Test
+    void buildDescriptorsAreLeftToTheBuildParser() {
+        // The pipeline gives each file to exactly one parser, so ownership must not
+        // depend on classpath order: build files belong to atlas-parser-build, which
+        // extracts modules, dependencies and declared mains from them.
+        assertFalse(parser.supports(request("pom.xml")), "pom.xml is a build descriptor");
+        assertFalse(parser.supports(request("app/build.gradle")));
+        assertFalse(parser.supports(request("settings.gradle.kts")));
+        assertFalse(parser.supports(request("ada/mission.gpr")));
+        // Ordinary configuration is still claimed.
+        assertTrue(parser.supports(request("beans.xml")));
+        assertTrue(parser.supports(request("application.properties")));
+        assertTrue(parser.supports(request("config/app.yml")));
+    }
+
+    private ParseRequest request(String name) {
+        return new ParseRequest(name, Path.of(name), "", "h", "config");
+    }
 }

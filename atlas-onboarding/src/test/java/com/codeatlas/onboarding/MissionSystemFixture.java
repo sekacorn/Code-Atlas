@@ -36,11 +36,28 @@ final class MissionSystemFixture {
         Files.createDirectories(java);
         Files.createDirectories(ada);
 
-        // Build files (drive build-system detection and reading-order stage 1).
-        Files.writeString(repo.resolve("pom.xml"),
-                "<project><groupId>com.example</groupId><artifactId>mission</artifactId></project>\n");
-        Files.writeString(repo.resolve("mission.gpr"),
-                "project Mission is\n   for Source_Dirs use (\"ada\");\nend Mission;\n");
+        // Build files: a Maven module for the Java side and a GNAT project for the Ada
+        // side that *declares* its main unit (the strongest entry-point evidence).
+        Files.writeString(repo.resolve("pom.xml"), """
+                <project>
+                    <groupId>com.example</groupId>
+                    <artifactId>mission</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.springframework</groupId>
+                            <artifactId>spring-web</artifactId>
+                            <version>6.1.0</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """);
+        Files.writeString(ada.resolve("mission.gpr"), """
+                project Mission is
+                   for Source_Dirs use (".");
+                   for Main use ("mission_main.adb");
+                end Mission;
+                """);
 
         // ---- Java ----
         Files.writeString(java.resolve("MissionApplication.java"), """

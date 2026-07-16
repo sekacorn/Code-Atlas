@@ -65,8 +65,9 @@ stage is recorded `FAILED` and the rest continue.
 3. **System Inventory** — counts and examples: Java packages/classes/endpoints, Ada
    packages/subprograms/tasks/state, tables, data sources/sinks, config files,
    unresolved artifacts.
-4. **Entry-Point Discovery** — Java `main(String[])` methods and REST endpoints; Ada
-   library-level main procedures and tasks. Never classified on naming alone.
+4. **Entry-Point Discovery** — build-declared mains (strongest), Java `main(String[])`
+   methods and REST endpoints, Ada library-level main procedures and tasks. Never
+   classified on naming alone.
 5. **Architecture Orientation** — reuses the Repository Orientation Agent: major
    modules, most-connected components, data-access and external-facing components,
    and inferred layers (labelled as inferences).
@@ -101,11 +102,16 @@ analysis is never hidden.
 
 ## Entry-point discovery
 
-Java entry points are `main(String[])` methods (by JVM signature, not name) and REST
-endpoints (HTTP-verb mapping annotations). Ada entry points are **top-level,
-parameterless library procedures** (the GNAT main-unit shape — inferred and labelled)
-and tasks. Scheduled jobs and message listeners are **not** detected (their
-annotations are not persisted) and are listed as a limitation.
+The strongest evidence wins. When a build file **declares** an entry point (a GNAT
+project's `for Main use (...)`), that unit is reported as a `DISCOVERED`
+build-declared main and the shape heuristic is skipped entirely. Otherwise: Java
+entry points are `main(String[])` methods (by JVM signature, not name) and REST
+endpoints (HTTP-verb mapping annotations); an Ada entry point falls back to the
+**top-level, parameterless library procedure** shape (the GNAT main-unit shape —
+`INFERRED`, and labelled as such). Ada tasks are reported too.
+
+Scheduled jobs and message listeners are **not** detected (their annotations are not
+persisted) and are listed as a limitation.
 
 ## Java/Ada boundary discovery
 

@@ -98,9 +98,27 @@ class OnboardingServiceTest {
     }
 
     @Test
-    void adaMainProcedureIsIdentified() {
-        assertTrue(result.entryPoints().stream().anyMatch(e -> e.language().equals("ada")
-                && e.type().startsWith("Ada main") && e.stableId().equals("ada:procedure:Mission_Main")));
+    void adaMainDeclaredByTheGnatProjectIsIdentifiedAsDiscoveredNotInferred() {
+        EntryPointSummary main = result.entryPoints().stream()
+                .filter(e -> e.stableId().equals("ada:procedure:Mission_Main")).findFirst()
+                .orElseThrow(() -> new AssertionError("the Ada main was not identified"));
+        assertEquals("ada", main.language());
+        assertEquals("Build-declared main (gnat)", main.type(),
+                "a build file declaring the main outranks the shape heuristic");
+        assertEquals("DISCOVERED", main.resolutionStatus(), "a declared main is a fact, not an inference");
+        assertTrue(main.confidence().contains("mission.gpr"), main.confidence());
+        // It must be reported once, not twice (declared and inferred).
+        assertEquals(1, result.entryPoints().stream()
+                .filter(e -> e.stableId().equals("ada:procedure:Mission_Main")).count());
+    }
+
+    @Test
+    void buildModulesAreInventoriedAndDrivePlatformFacts() {
+        assertTrue(result.inventory().categories().stream()
+                        .anyMatch(c -> c.name().equals("Build modules") && c.count() == 2),
+                "the Maven module and the GNAT project are both inventoried");
+        assertEquals(List.of("GNAT project (GPRbuild)", "Maven"), result.intake().buildSystems(),
+                "build systems come from the modules that were actually parsed");
     }
 
     @Test

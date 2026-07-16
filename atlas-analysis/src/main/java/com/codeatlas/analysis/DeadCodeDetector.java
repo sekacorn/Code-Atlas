@@ -37,7 +37,10 @@ public final class DeadCodeDetector {
             RelationshipKind.IMPLEMENTS, RelationshipKind.INSTANTIATES, RelationshipKind.USES,
             RelationshipKind.IMPORTS, RelationshipKind.RENAMES, RelationshipKind.DEPENDS_ON,
             RelationshipKind.INVOKES, RelationshipKind.CONSUMES, RelationshipKind.PRODUCES,
-            RelationshipKind.VALIDATED_BY, RelationshipKind.MANAGES, RelationshipKind.CONFIGURES);
+            RelationshipKind.VALIDATED_BY, RelationshipKind.MANAGES, RelationshipKind.CONFIGURES,
+            // A unit the build declares as an executable main is an entry point:
+            // nothing in the source calls it, but it is emphatically not dead.
+            RelationshipKind.DECLARES_MAIN);
 
     // Entity kinds worth reporting as potentially dead. Packages are intentionally
     // excluded: nothing "uses" a package directly, so flagging them yields false

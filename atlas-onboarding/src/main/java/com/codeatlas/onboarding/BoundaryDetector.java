@@ -69,7 +69,7 @@ final class BoundaryDetector {
         boolean hasAda = !adaSubprograms.isEmpty()
                 || !api.searchEntities("", "PACKAGE", "ada", 1).value().isEmpty();
         List<EvidenceRef> adaMainRefs = entryPoints.stream()
-                .filter(e -> e.language().equals("ada") && e.type().startsWith("Ada main"))
+                .filter(e -> e.isMain() && e.language().equals("ada"))
                 .map(e -> new EvidenceRef(e.stableId(), e.location())).toList();
 
         List<BoundarySummary> out = new ArrayList<>();

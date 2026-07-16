@@ -160,6 +160,11 @@ public final class CodeAtlasPipeline {
 
         LinkStats linkStats = linker.link(model);
 
+        // Build membership is a cross-file fact: assign each file to the deepest
+        // build module whose directory contains it. Runs after linking so module
+        // entities exist and their declared dependencies are already resolved.
+        new BuildMembershipLinker().apply(model);
+
         // Lineage rules run after linking (they need resolved type/impl edges) and
         // before persistence (lineage facts belong to the scan snapshot).
         new com.codeatlas.analysis.lineage.LineageAnalyzer().apply(model);
