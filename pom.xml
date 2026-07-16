@@ -13,10 +13,14 @@
     <description>Offline-first software intelligence and static analysis platform</description>
 
     <!--
-      Milestone 1 reactor: a Java + Ada vertical slice that proves the full pipeline
-        scan -> parse -> unified model -> H2 index -> analysis -> reports
-      The parser API is deliberately language-neutral so config/database/custom
-      parsers and the graph/summary/AI/interactive-UI modules drop in later.
+      The reactor:
+        scan -> parse (Java, Ada, configuration, build files, SQL/DDL)
+             -> unified model -> link -> H2 index -> analysis + data lineage
+             -> reports / graphs / read-only tool API / deterministic agents
+             -> guided onboarding
+      The parser API is language-neutral: each parser is discovered via ServiceLoader,
+      so custom formats, further languages and the optional UI/AI layers drop in
+      without changing the core.
     -->
     <modules>
         <module>atlas-model</module>
@@ -26,6 +30,7 @@
         <module>atlas-parser-ada</module>
         <module>atlas-parser-config</module>
         <module>atlas-parser-build</module>
+        <module>atlas-parser-sql</module>
         <module>atlas-index</module>
         <module>atlas-analysis</module>
         <module>atlas-reporting</module>
@@ -86,6 +91,11 @@
             <dependency>
                 <groupId>com.codeatlas</groupId>
                 <artifactId>atlas-parser-build</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.codeatlas</groupId>
+                <artifactId>atlas-parser-sql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

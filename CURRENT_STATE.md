@@ -3,7 +3,8 @@
 _Assessment date: 2026-07-16. Reflects the repository as inspected, not the
 original prompt. Scope: the whole codebase — the Java/Ada vertical slice plus the
 analysis-coverage, stable-identifier, persistence, data-lineage, tool-API, agent,
-configuration-parsing, graph-export, guided-onboarding and build-parsing work._
+configuration-parsing, graph-export, guided-onboarding, build-parsing and
+SQL-schema work._
 
 This document is the factual baseline: what exists, how healthy the build is, and
 the concrete technical risks that later milestones must address. It is written to
@@ -35,6 +36,13 @@ be falsifiable — every claim here is checkable against the code or the test su
   whose directory contains it, which makes `get_build_membership` answerable and stops
   a GNAT-declared main being reported as dead code. Read literally: nothing is
   resolved, fetched or executed.
+- **SQL/DDL parser** (`atlas-parser-sql`): `CREATE TABLE`/`VIEW`, columns, primary
+  keys and foreign keys (inline, table-level and `ALTER TABLE`) → `DATABASE_OBJECT`
+  and column entities with `file:line` evidence. A table's stable id is its name, so
+  a declared table and the table a JPA `@Entity` maps to merge into one entity
+  (`DATABASE_OBJECT` is an aggregating kind, so this is a merge, not a collision);
+  a table without a `declaredIn` attribute is one no parsed schema declares. Foreign
+  keys resolve to declared tables only. A statement scanner, not a SQL grammar.
 - **Ada/SPARK parser** (`atlas-parser-ada`): deterministic line-and-scope scanner
   for `.ads`/`.adb` — packages & child packages, procedures, functions, types
   (record/enum/access/derived), tasks, protected types, exceptions, `with`
@@ -102,8 +110,10 @@ be falsifiable — every claim here is checkable against the code or the test su
   endpoint→…→table; Ada: console→procedure→transformation→package state→output;
   per-edge rule ids, confidence, resolution status, gaps, CLI/JSON/HTML — see
   DATA_LINEAGE.md). Still missing: config/SQL parser input to lineage.
-- Database (SQL/DDL) and custom-format parsers. (Configuration XML/YAML/properties and
-  build files (Maven/Gradle/`.gpr`) are now implemented; JSON config is not.)
+- Custom-format parsers, and JSON configuration. (Configuration XML/YAML/properties,
+  build files (Maven/Gradle/`.gpr`) and SQL/DDL schema are implemented.)
+- JDBC / literal in-code SQL extraction, and Ada database bindings — so a table
+  shared between Java and Ada is still not detectable as a cross-language boundary.
 - ~~Build membership feeding dead-code / entry-point analysis~~ **Done**: files are
   assigned to their owning module, `get_build_membership` answers, and a build-declared
   main is an entry point rather than a dead-code candidate. Build membership does not
@@ -151,10 +161,10 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 
 ## Current build health
 
-- **Build:** `mvn clean install` → **BUILD SUCCESS** (16 modules).
-- **Test:** `mvn test` → **153 tests, 0 failures, 0 errors** across model, scanner,
-  parsers (Java, Ada, configuration, build), index, analysis, core, graph, tools,
-  agents and onboarding.
+- **Build:** `mvn clean install` → **BUILD SUCCESS** (17 modules).
+- **Test:** `mvn test` → **164 tests, 0 failures, 0 errors** across model, scanner,
+  parsers (Java, Ada, configuration, build, SQL), index, analysis, core, graph,
+  tools, agents and onboarding.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging
   binding on the test classpath); the CLI ships `slf4j-simple` at runtime.
 - **Determinism:** verified — two scans of the same repo produce byte-identical

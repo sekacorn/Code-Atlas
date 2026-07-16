@@ -45,6 +45,7 @@ public final class Linker {
         Map<String, List<Entity>> typesByName = new HashMap<>();
         Map<String, List<Entity>> byQualifiedName = new HashMap<>();
         Map<String, List<Entity>> modulesByKey = new HashMap<>();
+        Map<String, List<Entity>> tablesByName = new HashMap<>();
 
         for (Entity e : model.entities()) {
             byQualifiedName.computeIfAbsent(e.qualifiedName().toLowerCase(), k -> new ArrayList<>()).add(e);
@@ -52,6 +53,8 @@ public final class Linker {
                 callablesByName.computeIfAbsent(e.name().toLowerCase(), k -> new ArrayList<>()).add(e);
             } else if (TYPES.contains(e.kind())) {
                 typesByName.computeIfAbsent(e.name().toLowerCase(), k -> new ArrayList<>()).add(e);
+            } else if (e.kind() == EntityKind.DATABASE_OBJECT) {
+                tablesByName.computeIfAbsent(e.name().toLowerCase(), k -> new ArrayList<>()).add(e);
             } else if (e.kind() == EntityKind.MODULE) {
                 // A build dependency may name a module by coordinate (group:artifact)
                 // or by bare name (a Gradle/GNAT project), so index both.
@@ -77,7 +80,13 @@ public final class Linker {
                 // subprogram that defines it, exactly like a call target.
                 case DECLARES_MAIN -> resolveCall(r, callablesByName);
                 case DEPENDS_ON -> resolveModule(r, modulesByKey);
-                case INHERITS, IMPLEMENTS, INSTANTIATES, IMPORTS, RENAMES, REFERENCES, CONFIGURES ->
+                // A reference out of the schema (a foreign key) names a table, not a
+                // type, so it resolves against tables. Scoping this to schema sources
+                // keeps ordinary code references from ever matching a table.
+                case REFERENCES -> r.fromId().startsWith("sql:")
+                        ? resolveTable(r, tablesByName)
+                        : resolveType(r, typesByName, byQualifiedName);
+                case INHERITS, IMPLEMENTS, INSTANTIATES, IMPORTS, RENAMES, CONFIGURES ->
                         resolveType(r, typesByName, byQualifiedName);
                 default -> null;
             };
@@ -150,6 +159,17 @@ public final class Linker {
             }
         }
         return List.of();
+    }
+
+    /**
+     * Resolves a foreign key to the table it references. A key pointing at a table
+     * no file in this repository declares stays unresolved — an honest gap, not a
+     * guess at an external schema.
+     */
+    private List<Entity> resolveTable(Relationship r, Map<String, List<Entity>> tablesByName) {
+        String target = r.attributes().getOrDefault("typeName", r.toId()).toLowerCase();
+        List<Entity> tables = tablesByName.get(target);
+        return tables != null ? tables : List.of();
     }
 
     private List<Entity> resolveType(Relationship r, Map<String, List<Entity>> typesByName,

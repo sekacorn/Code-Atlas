@@ -49,7 +49,18 @@ expectations. It is updated as limitations are addressed.
   Gradle version catalogs (`libs.foo`), `ext` properties and plugin-injected
   dependencies are **not** resolved; GNAT variables, scenario variables
   (`external(...)`) and `package` blocks are not evaluated. Only literal declarations
-  are recorded. **No database (SQL/DDL) parsing** yet.
+  are recorded.
+- **SQL/DDL** (`.sql`, `.ddl`) is parsed for the schema a repository *declares*:
+  `CREATE TABLE`/`VIEW` with their columns, primary keys and foreign keys, and
+  `ALTER TABLE ... ADD ... FOREIGN KEY`. Because a table's stable id is its name, a
+  declared table and the table a JPA entity maps to are the same entity, so a
+  mapping is confirmed against a real schema; a table with no `declaredIn`
+  attribute was inferred from JPA naming and no parsed DDL declares it. Limits:
+  this is a statement scanner, not a SQL grammar — a view is recorded as an object
+  but its query is **not** analysed (no view→table lineage), and stored procedures,
+  triggers, dynamic SQL, vendor extensions and partitioning are not modeled. JDBC
+  and literal in-code SQL are still not extracted, so code→table edges come only
+  from JPA mappings.
 
 ## Analysis
 

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.codeatlas</groupId>
+        <artifactId>code-atlas</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>atlas-parser-sql</artifactId>
+    <name>Code Atlas :: SQL/DDL parser</name>
+    <description>
+        Extracts the database schema a repository declares: CREATE TABLE / VIEW,
+        their columns and foreign keys. Gives data lineage a declared schema of
+        record instead of table names inferred from JPA naming conventions.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-parser-api</artifactId>
+        </dependency>
+    </dependencies>
+</project>

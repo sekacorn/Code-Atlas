@@ -57,6 +57,10 @@
             <artifactId>atlas-parser-build</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-parser-sql</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>

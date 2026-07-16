@@ -212,8 +212,9 @@ public final class OrientationAgent {
                 confirmed.isEmpty() ? "No database tables or package state were detected."
                         : confirmed.size() + " data store(s) detected (tables and package state).",
                 confirmed, List.of(), evidence, confidence(confirmed.size(), 0), List.of(),
-                List.of("Only JPA-mapped tables and Ada package-level state are modeled; "
-                        + "JDBC/raw SQL and Ada database bindings are not parsed yet"),
+                List.of("Tables come from parsed DDL and JPA mappings; a table shown without a "
+                        + "declaration is inferred from JPA naming, not declared by any schema here",
+                        "JDBC/raw SQL, dynamic SQL and Ada database bindings are not parsed yet"),
                 List.of("atlas lineage sql:table:<name> --upstream",
                         "atlas lineage ada:variable:<Package.Var> --upstream"));
     }

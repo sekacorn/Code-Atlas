@@ -25,9 +25,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class SoftwareModel {
 
     // Entity kinds that legitimately aggregate across files (packages span files;
-    // FILE/PROJECT are re-added with enriched attributes).
+    // FILE/PROJECT are re-added with enriched attributes; a database object is
+    // declared by DDL, mapped from code and altered by later statements - all of
+    // which describe one table, not competing declarations).
     private static final Set<EntityKind> AGGREGATING =
-            EnumSet.of(EntityKind.FILE, EntityKind.PROJECT, EntityKind.PACKAGE, EntityKind.NAMESPACE);
+            EnumSet.of(EntityKind.FILE, EntityKind.PROJECT, EntityKind.PACKAGE, EntityKind.NAMESPACE,
+                    EntityKind.DATABASE_OBJECT);
 
     private final Map<String, Entity> entities = new ConcurrentHashMap<>();
     private final List<Relationship> relationships = Collections.synchronizedList(new ArrayList<>());
