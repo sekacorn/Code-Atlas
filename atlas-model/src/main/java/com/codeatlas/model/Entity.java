@@ -60,6 +60,7 @@ public final class Entity {
         public static final String MANAGED_ENTITY_TYPE = "managedEntityType"; // first type arg of JpaRepository<...>
         public static final String DB_OBJECT_TYPE = "dbObjectType";        // table (views/procs are future work)
         public static final String TRANSFORMATION = "transformation";      // true on detected mapping methods
+        public static final String NATIVE_METHOD = "nativeMethod";         // true on a Java 'native' method (JNI boundary)
 
         private Attributes() {
         }

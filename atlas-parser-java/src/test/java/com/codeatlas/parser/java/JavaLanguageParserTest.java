@@ -89,4 +89,24 @@ class JavaLanguageParserTest {
         ParseResult result = parse("class Broken { void x( }");
         assertTrue(result.hasErrors());
     }
+
+    @Test
+    void marksNativeMethodsAsAJniBoundary() {
+        ParseResult result = parse("""
+                class Bridge {
+                    native long compute(long h);
+                    void ordinary() {}
+                }
+                """);
+        Entity nativeMethod = result.entities().stream()
+                .filter(e -> e.kind() == EntityKind.METHOD && e.name().equals("compute"))
+                .findFirst().orElseThrow();
+        assertTrue(nativeMethod.boolAttribute(Entity.Attributes.NATIVE_METHOD, false),
+                "a native method carries the JNI-boundary marker");
+        Entity ordinary = result.entities().stream()
+                .filter(e -> e.kind() == EntityKind.METHOD && e.name().equals("ordinary"))
+                .findFirst().orElseThrow();
+        assertTrue(!ordinary.boolAttribute(Entity.Attributes.NATIVE_METHOD, false),
+                "a non-native method has no marker");
+    }
 }

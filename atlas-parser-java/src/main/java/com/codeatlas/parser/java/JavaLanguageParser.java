@@ -15,6 +15,7 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Range;
 import com.github.javaparser.ast.AccessSpecifier;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.AnnotationDeclaration;
@@ -275,6 +276,11 @@ public final class JavaLanguageParser implements RepositoryParser {
             String normalized = SpringLineageExtractor.normalizeReturnType(md.getType());
             if (!normalized.equals("void")) {
                 b.attribute(Entity.Attributes.RETURN_TYPE_NORMALIZED, normalized);
+            }
+            // A 'native' method is a JNI boundary to non-Java code (C/C++/Ada via a
+            // C shim) — the crispest evidence for Java↔Ada boundary discovery.
+            if (md.hasModifier(Modifier.Keyword.NATIVE)) {
+                b.attribute(Entity.Attributes.NATIVE_METHOD, true);
             }
         }
         Entity entity = b.build();

@@ -8,7 +8,7 @@
     .\atlas.ps1 start               serve the report at http://127.0.0.1:<port> (loopback only)
     .\atlas.ps1 stop                stop the report server
     .\atlas.ps1 status              show build / scan / server status
-    .\atlas.ps1 orient|lineage|graph [arg]   run a query against the last-scanned repo
+    .\atlas.ps1 orient|lineage|graph|onboard [arg]   query/onboard the last-scanned repo
 
   Requires JDK 21 on PATH (and Maven for "build"). Serves via the JDK's built-in
   jwebserver (falls back to python). Fully offline; binds only to 127.0.0.1.
@@ -133,6 +133,14 @@ function Do-Graph($type) {
     if ($LASTEXITCODE -eq 0) { Ok "Graph written: $out (view via the report server or open directly)" }
 }
 
+function Do-Onboard {
+    if (-not (Ensure-Jar)) { return }
+    $r = Require-Repo; if (-not $r) { return }
+    $out = Join-Path $AtlasHome "atlas-onboarding-report"
+    & java -jar $Jar onboard $r --output $out
+    if ($LASTEXITCODE -eq 0) { Ok "Onboarding package written: $out\onboarding-report.html" }
+}
+
 function Do-Status {
     Write-Host "  Code Atlas status"
     if (Test-Path $Jar) { Ok "jar built: $Jar" } else { Warn "jar not built (option 1)" }
@@ -153,7 +161,8 @@ function Show-Menu {
         Write-Host "  5) Orient            'where do I start?'"
         Write-Host "  6) Lineage           trace where data flows"
         Write-Host "  7) Export a graph    (SVG)"
-        Write-Host "  8) Status"
+        Write-Host "  8) Onboard           guided onboarding package"
+        Write-Host "  9) Status"
         Write-Host "  0) Quit"
         $choice = Read-Host "  Choose"
         switch ($choice) {
@@ -164,7 +173,8 @@ function Show-Menu {
             "5" { Do-Orient }
             "6" { Do-Lineage "" }
             "7" { Do-Graph "" }
-            "8" { Do-Status }
+            "8" { Do-Onboard }
+            "9" { Do-Status }
             "0" { Do-Stop; Write-Host "  Goodbye."; return }
             default { Fail "Unknown option: $choice" }
         }
@@ -180,6 +190,7 @@ switch ($Action.ToLower()) {
     "orient"  { Do-Orient }
     "lineage" { Do-Lineage $Arg }
     "graph"   { Do-Graph $Arg }
+    "onboard" { Do-Onboard }
     "menu"    { Show-Menu }
-    default   { Fail "Unknown action: $Action (try: build scan start stop status orient lineage graph)"; exit 2 }
+    default   { Fail "Unknown action: $Action (try: build scan start stop status orient lineage graph onboard)"; exit 2 }
 }

@@ -126,6 +126,18 @@ atlas investigate ada:variable:Mission_Data.Current_Route --repo …
 
 All are deterministic: identical index content yields byte-identical output.
 
+### Repository Onboarding Coordinator — `atlas onboard <repository>`
+
+A guided, twelve-stage workflow (`atlas-onboarding`) that **orchestrates the agents
+above** into one investigation for a developer joining an unfamiliar Java/Ada system.
+The coordinator creates no new facts: it runs the Repository Orientation Agent, the
+deterministic summaries and the tool API, and organizes their results — plus
+evidence-based Java↔Ada boundary discovery, representative lineage sampling, central-
+component ranking, a reading order and grounded expert questions — into an evidence-
+backed onboarding package (deterministic JSON + self-contained HTML), written outside
+the repository. A per-stage failure never aborts the workflow. No LLM. See
+[ONBOARDING.md](ONBOARDING.md).
+
 ## Runtime modes
 
 In order of delivery: **deterministic** (implemented — graph traversal, rules and

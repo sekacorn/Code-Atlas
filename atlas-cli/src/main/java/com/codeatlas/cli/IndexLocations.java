@@ -28,6 +28,26 @@ final class IndexLocations {
                 safe + "-" + hash8(abs.toString()), "atlas");
     }
 
+    /**
+     * Where onboarding reports go when {@code ./atlas-onboarding-report} would fall
+     * inside the analyzed repository (e.g. {@code atlas onboard .} run from the
+     * repository root). Reports must never be written into the analyzed tree.
+     */
+    static Path defaultOnboardingOutputFor(Path repositoryRoot) {
+        return Path.of(System.getProperty("user.home"), ".code-atlas", "onboarding",
+                repositoryKey(repositoryRoot));
+    }
+
+    /**
+     * A deterministic, location-derived key that distinguishes same-named
+     * repositories without exposing the full path (name + 8-hex path hash).
+     */
+    static String repositoryKey(Path repositoryRoot) {
+        Path abs = repositoryRoot.toAbsolutePath().normalize();
+        String name = abs.getFileName() != null ? abs.getFileName().toString() : "repo";
+        return name.replaceAll("[^A-Za-z0-9._-]", "_") + "-" + hash8(abs.toString());
+    }
+
     private static String hash8(String s) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8));

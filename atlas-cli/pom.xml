@@ -32,6 +32,10 @@
             <artifactId>atlas-graph</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-onboarding</artifactId>
+        </dependency>
+        <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
         </dependency>

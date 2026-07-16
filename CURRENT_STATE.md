@@ -54,6 +54,14 @@ concrete technical risks that later milestones must address.
   self-contained **SVG** for dependency (risk-coloured coupling), call,
   dead-code (active vs probable-dead) and architecture (role-layered) graphs;
   `atlas graph --type <t> --format <dot|svg>`.
+- **Guided onboarding** (`atlas-onboarding`): `atlas onboard <repo>` runs a
+  twelve-stage, deterministic, read-only workflow (scan health, inventory, Java &
+  Ada entry points, architecture orientation, **Java↔Ada boundary discovery**,
+  representative lineage sampling, central components, risks & gaps, reading order,
+  expert questions, final summary) and writes an evidence-backed package
+  (deterministic JSON + self-contained HTML + text) **outside** the repository.
+  It reuses the tool API and the deterministic agents; per-stage failures never
+  abort the workflow. See [ONBOARDING.md](ONBOARDING.md).
 - **CLI** (`atlas-cli`): `atlas scan <repo>` as a single shaded runnable jar;
   options for output dir, persistent index, thresholds, threads.
 

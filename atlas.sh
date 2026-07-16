@@ -8,7 +8,7 @@
 #   ./atlas.sh start           serve the report at http://127.0.0.1:<port> (loopback only)
 #   ./atlas.sh stop            stop the report server
 #   ./atlas.sh status          show build / scan / server status
-#   ./atlas.sh orient|lineage|graph   run a query against the last-scanned repo
+#   ./atlas.sh orient|lineage|graph|onboard   query/onboard the last-scanned repo
 #
 # Requires JDK 21 on PATH (and Maven for "build"). Serves via the JDK's built-in
 # jwebserver (falls back to python). Fully offline; nothing binds beyond 127.0.0.1.
@@ -140,6 +140,14 @@ do_graph() {
   fi
 }
 
+do_onboard() {
+  ensure_jar || return 1; local r; r="$(require_repo)" || return 1
+  local out="$ATLAS_HOME/atlas-onboarding-report"
+  if java -jar "$JAR" onboard "$r" --output "$out"; then
+    ok "Onboarding package written: $out/onboarding-report.html"
+  fi
+}
+
 # --- status ----------------------------------------------------------------
 do_status() {
   log "  Code Atlas status"
@@ -161,7 +169,8 @@ menu() {
     printf '  5) Orient            "where do I start?"\n'
     printf '  6) Lineage           trace where data flows\n'
     printf '  7) Export a graph    (SVG)\n'
-    printf '  8) Status\n'
+    printf '  8) Onboard           guided onboarding package\n'
+    printf '  9) Status\n'
     printf '  0) Quit\n'
     read -rp "  Choose: " choice
     case "$choice" in
@@ -172,7 +181,8 @@ menu() {
       5) do_orient;;
       6) do_lineage;;
       7) do_graph;;
-      8) do_status;;
+      8) do_onboard;;
+      9) do_status;;
       0) do_stop; log "  Goodbye."; exit 0;;
       *) err "Unknown option: $choice";;
     esac
@@ -188,6 +198,7 @@ case "${1:-menu}" in
   orient)  do_orient;;
   lineage) shift; do_lineage "${1:-}";;
   graph)   shift; do_graph "${1:-}";;
+  onboard) do_onboard;;
   menu|"") menu;;
   -h|--help|help)
     sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//';;

@@ -101,6 +101,30 @@ expectations. It is updated as limitations are addressed.
   design).
 - No interactive UI (CLI + static HTML by design).
 
+## Guided onboarding (`atlas onboard`)
+
+- **It is a guided view over existing analysis, not new analysis.** The onboarding
+  coordinator organizes results from the read-only tool API and the deterministic
+  agents; it never creates new facts, and it inherits every limitation above.
+- **Java↔Ada boundaries are graded by evidence and never invented from names.** A
+  boundary requires a real crossing signal (a `native`/JNI method, a process/message/
+  network API reference, an actual unresolved cross-language reference, or a shared
+  data-store identity). A native method's Ada counterpart is reached by a conservative
+  normalized-name match and is always reported **INFERRED** with its missing
+  information stated — Code Atlas does not resolve symbols across languages. Process/
+  message/network boundaries name the far side only when evidence supports it.
+- **Entry points** cover Java `main(String[])` and REST endpoints, and Ada top-level
+  parameterless library procedures (the GNAT main shape, inferred) and tasks.
+  Schedulers, message listeners and build-configured mains are **not** detected.
+- **Representative lineage paths are a small deterministic sample** (default 5), never
+  the whole system; partial paths are labelled partial.
+- **Scan health for a reused scan is derived from the persisted model** (file buckets
+  and resolution rate are approximate and labelled as derived); exact counts require a
+  fresh scan.
+- Entity scanning caps at **1000 per kind**. Onboarding writes reports **outside** the
+  analyzed repository and never modifies, patches, deletes, commits, executes or
+  uploads anything. See [ONBOARDING.md](ONBOARDING.md).
+
 ## What Code Atlas does **not** claim
 
 - It does not claim complete understanding of any repository.

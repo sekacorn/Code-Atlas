@@ -4,6 +4,7 @@ target/
 
 # Generated reports and local indexes
 atlas-report/
+atlas-onboarding-report/
 .atlas-run/
 
 # Local assistant/tool state

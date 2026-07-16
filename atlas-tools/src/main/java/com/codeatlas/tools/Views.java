@@ -69,6 +69,18 @@ public final class Views {
                              String limitations) {
     }
 
+    /** Resolved / unresolved / ambiguous cross-reference counts (structural
+     *  {@code CONTAINS} edges excluded), for deriving scan health from a reused scan. */
+    public record ReferenceCounts(int resolved, int unresolved, int ambiguous) {
+        public int total() {
+            return resolved + unresolved + ambiguous;
+        }
+
+        public int resolutionRatePercent() {
+            return total() == 0 ? 100 : (int) Math.round(100.0 * resolved / total());
+        }
+    }
+
     /** Headline repository facts for orientation. */
     public record RepositorySummaryView(int totalFiles,
                                         long totalLines,

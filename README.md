@@ -45,7 +45,8 @@ Either opens the same interactive menu:
   5) Orient            "where do I start?"
   6) Lineage           trace where data flows
   7) Export a graph    (SVG)
-  8) Status
+  8) Onboard           guided onboarding package
+  9) Status
   0) Quit
 ```
 
@@ -87,6 +88,7 @@ For the underlying commands and every option, see [Build](#build) and [Run](#run
 - [DATA_LINEAGE.md](DATA_LINEAGE.md) — Java data lineage: rules, confidence, CLI queries, JSON format, gaps.
 - [PERSISTENCE.md](PERSISTENCE.md) / [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) — file-backed index, scan versioning, parse reuse.
 - [AGENTS.md](AGENTS.md) — the read-only agent tool API, deterministic summaries, and the Orientation and Data-Lineage Investigator agents.
+- [ONBOARDING.md](ONBOARDING.md) — the guided `atlas onboard` workflow: stages, entry points, Java/Ada boundaries, reading order, expert questions, report formats.
 - [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) — what the tool does not (yet) do, and what it does not claim.
 
 ## Status — Milestone 1 (Java + Ada vertical slice)
@@ -123,6 +125,7 @@ and who consumes it.**
 | **Graph exports** | `atlas graph --type <dependency\|call\|dead-code\|architecture> --format <dot\|svg>` — deterministic Graphviz DOT and self-contained SVG views over the persisted model (risk-coloured coupling, call graph, active-vs-dead, role layers) |
 | **Agent tool API** | `atlas tool <operation>` / `AtlasToolApi`: a controlled, **database-level read-only** query boundary over the persisted index (callers, dependents, lineage, impact, dead code, summary) with stable ids, evidence and honest `supported=false` for missing capabilities — see [AGENTS.md](AGENTS.md) |
 | **Deterministic agents** | `atlas orient` (where do I start / what's central / what couldn't be analyzed), `atlas summarize <id>` (method/component summaries) and `atlas investigate <id>` (where data originates, what transforms it, where it's stored, who consumes it, what's unresolved — with the numbered confirmed path) — **templates over the tool API, no LLM**, confirmed facts separated from labelled inferences, every statement citing stable ids and file:line evidence — see [AGENTS.md](AGENTS.md) |
+| **Guided onboarding** | `atlas onboard <repo>` — one command runs a twelve-stage, deterministic investigation and writes an evidence-backed onboarding package (JSON + self-contained HTML): scan health, inventory, **Java & Ada entry points**, architecture orientation, **Java↔Ada boundary discovery** (JNI/native, process, message, shared-data — never name-similarity alone), representative lineage paths, central components, risks & gaps, a suggested reading order, and grounded questions for subject-matter experts. Read-only; reuses the existing agents; no AI — see [ONBOARDING.md](ONBOARDING.md) |
 | **CLI** | `atlas scan <repo>` — single runnable jar, no install |
 
 ### Dead-code philosophy
@@ -164,7 +167,12 @@ java -jar atlas-cli/target/atlas.jar orient --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar summarize sql:table:customer --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar investigate sql:table:customer --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar graph --type architecture --format svg --repo /path/to/repo -o arch.svg
+java -jar atlas-cli/target/atlas.jar onboard /path/to/repo --output ./atlas-onboarding-report
 ```
+
+`atlas onboard` runs the full guided workflow and writes `onboarding-report.json`,
+`onboarding-report.html` and `onboarding-report.txt` outside the analyzed repository
+(see [ONBOARDING.md](ONBOARDING.md)).
 
 For step-by-step examples that help a developer trace data from endpoints,
 tables, Ada package state or console input, see
@@ -199,9 +207,14 @@ Repository → Scanner → Parser framework (plugins) → Unified model
 | `atlas-scanner` | Recursive scan, language detection, hashing, parallel walk |
 | `atlas-parser-java` | Java extraction (JavaParser) |
 | `atlas-parser-ada` | Ada / SPARK extraction |
+| `atlas-parser-config` | Configuration extraction (XML/`.properties`/YAML) |
 | `atlas-index` | H2-backed store + incremental change detection |
-| `atlas-analysis` | Metrics, complexity, dead-code, dependency analysis |
+| `atlas-analysis` | Metrics, complexity, dead-code, dependency, data-lineage analysis |
 | `atlas-reporting` | HTML / JSON / CSV generation |
+| `atlas-graph` | Graph exports (Graphviz DOT + self-contained SVG) |
+| `atlas-tools` | Read-only agent tool API over the persisted index |
+| `atlas-agents` | Deterministic agents (Orientation, Data-Lineage Investigator, summaries) |
+| `atlas-onboarding` | Guided repository-onboarding workflow (`atlas onboard`) |
 | `atlas-core` | Pipeline orchestration + cross-reference linker |
 | `atlas-cli` | Command-line driver |
 

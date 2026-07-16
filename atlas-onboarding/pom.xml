@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.codeatlas</groupId>
+        <artifactId>code-atlas</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>atlas-onboarding</artifactId>
+    <name>Code Atlas :: Onboarding</name>
+    <description>
+        Guided, deterministic repository-onboarding workflow. Combines the existing
+        read-only tool API and deterministic agents into one staged investigation
+        that produces an evidence-backed onboarding package for a developer joining
+        an unfamiliar mixed Java/Ada system. Read-only; no AI; offline.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-analysis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-tools</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-agents</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-reporting</artifactId>
+        </dependency>
+
+        <!-- Tests: scan a real fixture through the pipeline, then query the persisted
+             index read-only exactly as production onboarding does. -->
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.codeatlas</groupId>
+            <artifactId>atlas-index</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

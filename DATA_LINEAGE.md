@@ -261,6 +261,15 @@ Treat a reported path as complete only within the analyzed evidence. Review the
 confidence, `INFERRED` markers, ambiguous edges and unresolved gaps before using
 the trace as a decision input.
 
+### 7. Let onboarding pick representative paths for you
+
+`atlas onboard <repo>` samples a small, ranked set of representative lineage paths
+(default 5) across the system's real inputs — endpoints, data sources and Ada mains —
+favouring high-confidence paths that cross a Java/Ada boundary or a data store, with
+Java and Ada both represented when available. Partial paths stay labelled partial.
+This is a guided starting point, not a replacement for a targeted `atlas lineage`
+trace. See [ONBOARDING.md](ONBOARDING.md).
+
 ## JSON output
 
 Deterministic (no timestamps; content-derived `scanId`; stable ordering):

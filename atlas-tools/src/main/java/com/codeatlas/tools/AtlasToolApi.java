@@ -116,6 +116,11 @@ public final class AtlasToolApi implements AutoCloseable {
         return scan.scanKey();
     }
 
+    /** The index schema version behind this scan (for provenance reporting). */
+    public String schemaVersion() {
+        return AtlasStore.schemaVersion();
+    }
+
     // ---- entity lookup ----
 
     /**
@@ -341,6 +346,30 @@ public final class AtlasToolApi implements AutoCloseable {
 
     public ToolResult<List<Diagnostic>> getDiagnostics() {
         return ToolResult.of(scanId(), diagnostics);
+    }
+
+    /**
+     * Resolved / unresolved / ambiguous cross-reference counts derived from the
+     * persisted model (structural {@code CONTAINS} edges excluded). Lets a reused
+     * scan report an honest resolution rate without re-running the pipeline.
+     */
+    public ToolResult<Views.ReferenceCounts> getReferenceCounts() {
+        int resolved = 0;
+        int unresolved = 0;
+        int ambiguous = 0;
+        for (Relationship r : model.relationships()) {
+            if (r.kind() == RelationshipKind.CONTAINS) {
+                continue;
+            }
+            if (r.resolved()) {
+                resolved++;
+            } else if ("true".equals(r.attributes().get(EvidenceKeys.AMBIGUOUS))) {
+                ambiguous++;
+            } else {
+                unresolved++;
+            }
+        }
+        return ToolResult.of(scanId(), new Views.ReferenceCounts(resolved, unresolved, ambiguous));
     }
 
     // ---- impact ----

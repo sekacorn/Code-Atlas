@@ -58,6 +58,11 @@ public final class AtlasStore implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AtlasStore.class);
     private static final String SCHEMA_VERSION = "3";
 
+    /** The index schema version this build reads/writes (for provenance reporting). */
+    public static String schemaVersion() {
+        return SCHEMA_VERSION;
+    }
+
     private final Connection connection;
     private final String url;
     private final boolean readOnly;
