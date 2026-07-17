@@ -100,6 +100,40 @@ expectations. It is updated as limitations are addressed.
   not re-merging); and entity locations persisted in the model snapshot drop
   column numbers (the parse cache keeps them).
 
+## Graph colour and colour-vision deficiency
+
+Exported graphs (`atlas graph`, and the SVG the explorer embeds) use an Okabe-Ito
+palette placed by search rather than by eye: `PaletteTest` simulates protanopia,
+deuteranopia and tritanopia and fails the build if two categories that can share a
+graph become confusable. It is the only palette, not an opt-in mode — an exported
+SVG outlives the session that made it and reaches readers nobody surveyed first.
+
+What is **guaranteed**:
+
+- Where colour carries the meaning — dead vs live, the risk ramp — categories stay
+  separable under all three dichromacies (worst-case ΔE 48 and 15 respectively), and
+  every opposed pair *also* differs in border treatment (dead is dashed, high risk is
+  heavy). So those graphs survive greyscale printing and monochromacy, not just CVD.
+- Risk is ordinal, so it reads as ordered by lightness: high risk is decisively the
+  darkest fill regardless of colour vision.
+- Node labels clear the WCAG AAA 7:1 contrast floor on every fill.
+
+What is **not**:
+
+- The architecture graph's ten layer roles are held only to the *common* dichromacies
+  (protanopia, deuteranopia; worst-case ΔE 12.7). Ten categories cannot be made
+  mutually separable under tritanopia as well — each dichromacy flattens colour space
+  to roughly two dimensions, and that many points will not stay apart in all of them
+  at once (`SERVICE` and `TABLE` collapse to ΔE 0.5 under tritanopia however they are
+  placed). This is survivable because every architecture node is **labelled with its
+  role**: hue groups the nodes, the label states what they are, and no information
+  lives in the colour alone. `PaletteTest` pins this concession so it cannot quietly
+  become untrue in either direction.
+- Graphviz renders DOT with its own defaults; the guarantees above cover the colours
+  and styles Code Atlas emits, not whatever a downstream `dot` theme overrides.
+- The explorer's own chrome was measured, not adjusted: its accent is blue and its
+  chips are neutral, so nothing there encodes meaning in colour to begin with.
+
 ## Agent tool API
 
 - Every operation is now implemented: `get_configuration_references` (configuration

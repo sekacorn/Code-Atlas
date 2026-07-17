@@ -103,17 +103,19 @@ public final class SvgWriter {
             if (p == null) {
                 continue;
             }
+            Palette.Emphasis emphasis = Palette.emphasis(n.category());
             sb.append("  <g>\n");
             sb.append("    <rect x=\"").append(num(p[0])).append("\" y=\"").append(num(p[1]))
               .append("\" width=\"").append(NODE_W).append("\" height=\"").append(NODE_H)
-              .append("\" rx=\"6\" fill=\"").append(DotWriter.fill(n.category()))
-              .append("\" stroke=\"").append(DotWriter.border(n.category()))
-              .append("\" stroke-width=\"").append(n.category() == GraphModel.Category.DEAD ? "2" : "1")
-              .append(n.category() == GraphModel.Category.DEAD ? "\" stroke-dasharray=\"4,2" : "")
+              .append("\" rx=\"6\" fill=\"").append(Palette.fill(n.category()))
+              .append("\" stroke=\"").append(Palette.border(n.category()))
+              .append("\" stroke-width=\"").append(emphasis == Palette.Emphasis.NORMAL ? "1" : "2")
+              .append(emphasis == Palette.Emphasis.DASHED ? "\" stroke-dasharray=\"4,2" : "")
               .append("\"/>\n");
             sb.append("    <text x=\"").append(num(p[0] + NODE_W / 2.0)).append("\" y=\"")
               .append(num(p[1] + NODE_H / 2.0 + 4)).append("\" font-size=\"11\" text-anchor=\"middle\" "
-                    + "fill=\"#1a1a1a\">").append(esc(truncate(n.label(), 26))).append("</text>\n");
+                    + "fill=\"").append(Palette.LABEL).append("\">")
+              .append(esc(truncate(n.label(), 26))).append("</text>\n");
             sb.append("  </g>\n");
         }
         sb.append("</svg>\n");

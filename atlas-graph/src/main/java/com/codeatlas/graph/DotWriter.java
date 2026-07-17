@@ -18,10 +18,13 @@ public final class DotWriter {
         sb.append("  node [shape=box, style=\"rounded,filled\", fontname=\"sans-serif\", fontsize=10];\n");
         sb.append("  edge [color=\"#888888\"];\n");
         for (GraphModel.Node n : graph.nodes()) {
+            Palette.Emphasis emphasis = Palette.emphasis(n.category());
             sb.append("  ").append(id(n.id()))
               .append(" [label=").append(quote(n.label()))
-              .append(", fillcolor=\"").append(fill(n.category())).append("\"")
-              .append(", color=\"").append(border(n.category())).append("\"")
+              .append(", fillcolor=\"").append(Palette.fill(n.category())).append("\"")
+              .append(", color=\"").append(Palette.border(n.category())).append("\"")
+              .append(", style=\"").append(style(emphasis)).append("\"")
+              .append(", penwidth=").append(emphasis == Palette.Emphasis.NORMAL ? "1" : "2")
               .append("];\n");
         }
         for (GraphModel.Edge e : graph.edges()) {
@@ -35,27 +38,16 @@ public final class DotWriter {
         return sb.toString();
     }
 
-    static String fill(GraphModel.Category c) {
-        return switch (c) {
-            case RISK_HIGH, DEAD -> "#f4c7c3";
-            case RISK_MEDIUM -> "#fce8b2";
-            case RISK_LOW, ACTIVE -> "#d9ead3";
-            case ENDPOINT, SOURCE -> "#c9daf8";
-            case CONTROLLER -> "#d0e0e3";
-            case SERVICE -> "#d9d2e9";
-            case MAPPER -> "#fff2cc";
-            case REPOSITORY -> "#d9ead3";
-            case TABLE, SINK -> "#ead1dc";
-            case STATE -> "#fce5cd";
-            default -> "#eeeeee";
-        };
-    }
-
-    static String border(GraphModel.Category c) {
-        return switch (c) {
-            case RISK_HIGH, DEAD -> "#cc0000";
-            case RISK_MEDIUM -> "#bf9000";
-            default -> "#666666";
+    /**
+     * The base node style plus {@link Palette}'s non-colour channel. Graphviz takes
+     * these as a style list, so the dash or the heavier pen rides along with the
+     * rounded, filled box rather than replacing it.
+     */
+    private static String style(Palette.Emphasis emphasis) {
+        return switch (emphasis) {
+            case NORMAL -> "rounded,filled";
+            case DASHED -> "rounded,filled,dashed";
+            case HEAVY -> "rounded,filled,bold";
         };
     }
 
