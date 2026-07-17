@@ -23,7 +23,11 @@ function Get-ProjectVersion {
 function Write-Checksum($Path) {
     $hash = Get-FileHash -Path $Path -Algorithm SHA256
     $line = "$($hash.Hash.ToLowerInvariant())  $(Split-Path -Leaf $Path)"
-    Set-Content -Path "$Path.sha256" -Value $line -Encoding ascii
+    # Write a LF line ending, not the CRLF that Set-Content emits on Windows: the sha256
+    # files are verified on Linux with `sha256sum -c`, which treats a trailing CR as part
+    # of the filename and then cannot find the archive. WriteAllText writes exactly these
+    # bytes with no platform translation.
+    [System.IO.File]::WriteAllText("$Path.sha256", "$line`n", (New-Object System.Text.ASCIIEncoding))
 }
 
 if ([string]::IsNullOrWhiteSpace($Version)) {

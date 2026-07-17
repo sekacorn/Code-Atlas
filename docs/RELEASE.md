@@ -38,7 +38,7 @@ From the repository root:
 To package a specific version label:
 
 ```powershell
-.\scripts\package-release.ps1 -Version 0.2.0
+.\scripts\package-release.ps1 -Version 0.2.1
 ```
 
 Artifacts are written to `dist/`.
@@ -48,14 +48,14 @@ Artifacts are written to `dist/`.
 Each archive is accompanied by a `.sha256` file. On Linux:
 
 ```bash
-sha256sum -c code-atlas-0.2.0-rhel-linux.tar.gz.sha256
+sha256sum -c code-atlas-0.2.1-rhel-linux.tar.gz.sha256
 ```
 
 On Windows PowerShell:
 
 ```powershell
-Get-FileHash .\code-atlas-0.2.0-windows10.zip -Algorithm SHA256
-Get-Content .\code-atlas-0.2.0-windows10.zip.sha256
+Get-FileHash .\code-atlas-0.2.1-windows10.zip -Algorithm SHA256
+Get-Content .\code-atlas-0.2.1-windows10.zip.sha256
 ```
 
 ## Local operation
@@ -63,8 +63,8 @@ Get-Content .\code-atlas-0.2.0-windows10.zip.sha256
 Linux:
 
 ```bash
-tar -xzf code-atlas-0.2.0-rhel-linux.tar.gz     # or ubuntu / debian
-cd code-atlas-0.2.0
+tar -xzf code-atlas-0.2.1-rhel-linux.tar.gz     # or ubuntu / debian
+cd code-atlas-0.2.1
 ./atlas.sh                       # menu: build, scan, report, onboard, explore
 ./atlas.sh scan /path/to/repo    # or drive it directly
 ```
@@ -72,8 +72,8 @@ cd code-atlas-0.2.0
 Windows 10:
 
 ```powershell
-Expand-Archive .\code-atlas-0.2.0-windows10.zip
-cd .\code-atlas-0.2.0-windows10\code-atlas-0.2.0
+Expand-Archive .\code-atlas-0.2.1-windows10.zip
+cd .\code-atlas-0.2.1-windows10\code-atlas-0.2.1
 .\atlas.ps1 scan C:\path\to\repo
 ```
 

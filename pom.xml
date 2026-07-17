@@ -6,7 +6,7 @@
 
     <groupId>com.codeatlas</groupId>
     <artifactId>code-atlas</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Code Atlas</name>
