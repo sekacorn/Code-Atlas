@@ -77,6 +77,12 @@ class ExplorerServerTest {
                 .GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
+    /** A client that shows the redirect itself rather than following it. */
+    private HttpClient noRedirect() {
+        return HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER)
+                .connectTimeout(Duration.ofSeconds(5)).build();
+    }
+
     @Test
     void overviewRenders() throws Exception {
         HttpResponse<String> r = get("/");
@@ -147,13 +153,87 @@ class ExplorerServerTest {
     }
 
     @Test
-    void pagesAreSelfContainedAndScriptFree() throws Exception {
+    void pagesAreSelfContainedWithNothingLoadedFromAnotherHost() throws Exception {
         String body = get("/").body();
-        assertFalse(body.contains("<script"), "no scripts: it works in a locked-down browser");
-        assertFalse(body.contains("http://") && body.replace("http://127.0.0.1", "").contains("http://"),
-                "no external assets");
-        assertFalse(body.contains("https://"), "no external assets");
         assertTrue(body.contains("<style"), "styles are inlined");
+        assertTrue(body.contains("<script"), "the enhancement script is inlined");
+        // The point is not "no script" but "nothing from anywhere else": no src=, no
+        // href= to a stylesheet, no CDN. It must run with no network at all.
+        assertFalse(body.contains("<script src"), "the script is inline, never fetched");
+        assertFalse(body.contains("rel=\"stylesheet\""), "no external stylesheet");
+        assertFalse(body.contains("https://"), "no external assets");
+        assertFalse(body.replace("http://127.0.0.1", "").contains("http://"), "no external assets");
+    }
+
+    @Test
+    void theScriptIsAuthorisedByAPerResponseNonceNotUnsafeInline() throws Exception {
+        HttpResponse<String> a = get("/");
+        String csp = a.headers().firstValue("Content-Security-Policy").orElse("");
+        assertTrue(csp.contains("script-src 'nonce-"), csp);
+        assertFalse(csp.contains("unsafe-inline'; script"), "scripts are not blanket-allowed");
+        assertTrue(csp.contains("default-src 'none'"), csp);
+
+        // The nonce in the header must match the one on the tag, and must not repeat.
+        String nonceA = csp.replaceAll(".*script-src 'nonce-([^']+)'.*", "$1");
+        assertTrue(a.body().contains("<script nonce=\"" + nonceA + "\">"), "tag carries the header's nonce");
+        String nonceB = get("/").headers().firstValue("Content-Security-Policy").orElse("")
+                .replaceAll(".*script-src 'nonce-([^']+)'.*", "$1");
+        assertFalse(nonceA.equals(nonceB), "a nonce is never reused across responses");
+    }
+
+    // ---- theme ----
+
+    @Test
+    void themeDefaultsToAutoAndFollowsTheOperatingSystem() throws Exception {
+        String body = get("/").body();
+        // Auto puts no attribute on <html>, so the media query decides. (The switcher
+        // links and the CSS legitimately mention data-theme, so assert on the tag.)
+        assertTrue(body.contains("<html lang=\"en\">"), "Auto sets no theme attribute");
+        assertTrue(body.contains("prefers-color-scheme:dark"), "and dark styling is available for it");
+    }
+
+    @Test
+    void choosingAThemeSetsACookieAndReturnsToTheSamePage() throws Exception {
+        HttpResponse<String> r = noRedirect().send(
+                HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + server.port()
+                        + "/theme?set=dark&next=" + Html.urlEncode("/search?q=Dao"))).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(302, r.statusCode());
+        assertEquals("/search?q=Dao", r.headers().firstValue("Location").orElse(""));
+        String cookie = r.headers().firstValue("Set-Cookie").orElse("");
+        assertTrue(cookie.startsWith("atlas_theme=dark"), cookie);
+        assertTrue(cookie.contains("SameSite=Strict"), cookie);
+    }
+
+    @Test
+    void aChosenThemeIsAppliedServerSideSoItWorksWithoutJavaScript() throws Exception {
+        HttpResponse<String> r = client.send(
+                HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + server.port() + "/"))
+                        .header("Cookie", "atlas_theme=dark").GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertTrue(r.body().contains("<html lang=\"en\" data-theme=\"dark\">"),
+                "the server renders the choice; no script needed");
+        assertTrue(r.body().contains(":root[data-theme=\"dark\"]"), "with styling that overrides the OS");
+    }
+
+    @Test
+    void anUnknownOrHostileThemeCookieFallsBackToAutoAndIsNeverEchoed() throws Exception {
+        HttpResponse<String> r = client.send(
+                HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + server.port() + "/"))
+                        .header("Cookie", "atlas_theme=\"><script>alert(1)</script>").GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, r.statusCode());
+        assertFalse(r.body().contains("<script>alert(1)"), "cookie text never reaches the page");
+        assertTrue(r.body().contains("<html lang=\"en\">"), "an unrecognised theme falls back to Auto");
+    }
+
+    @Test
+    void themeReturnTargetCannotBeUsedAsAnOpenRedirect() {
+        assertEquals("/", ExplorerServer.safeNext("https://evil.example/x"), "absolute URL refused");
+        assertEquals("/", ExplorerServer.safeNext("//evil.example/x"), "protocol-relative refused");
+        assertEquals("/", ExplorerServer.safeNext("/x\r\nSet-Cookie: a=b"), "header injection refused");
+        assertEquals("/", ExplorerServer.safeNext(null));
+        assertEquals("/search?q=a", ExplorerServer.safeNext("/search?q=a"), "a local path is allowed");
     }
 
     @Test

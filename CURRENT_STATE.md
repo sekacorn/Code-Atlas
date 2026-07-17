@@ -84,8 +84,14 @@ be falsifiable — every claim here is checkable against the code or the test su
   loopback — search the model, open an entity, and click through callers, callees,
   dependencies, members, build module, configuration references and data lineage.
   Built on the read-only tool API and the JDK's built-in HTTP server (no new
-  dependency); server-rendered HTML with no JavaScript and no external assets;
-  GET-only, with a restrictive Content-Security-Policy and every model value escaped.
+  dependency). Server-rendered HTML with a light/dark/auto theme (remembered in a
+  cookie and applied server-side), live list filtering and a "/" search shortcut. The
+  CSS and script are inline and nothing loads from another host, so it runs offline;
+  the script is progressive enhancement, so search, navigation and the theme switcher
+  all work with scripting disabled. GET-only, single-user by design (no login: the
+  socket is loopback-only and the view read-only, so there is no boundary to
+  authenticate across), with a nonce-based Content-Security-Policy
+  (default-src 'none'), a guarded theme-return target, and every model value escaped.
 - **CLI** (`atlas-cli`): `atlas scan <repo>` as a single shaded runnable jar;
   options for output dir, persistent index, thresholds, threads.
 
@@ -162,8 +168,9 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 - **CLI:** picocli; `scan`, `lineage`, `tool`, `orient`, `summarize`, `investigate`,
   `graph`, `onboard` and `serve` subcommands.
 - **UI:** a local read-only explorer (`atlas serve`, `atlas-ui`) plus static HTML
-  reports. Server-rendered, no JavaScript, loopback-only, GET-only — it renders the
-  index and can change nothing. No interactive graph viewer (graphs are static SVG).
+  reports. Server-rendered, loopback-only, GET-only — it renders the index and can
+  change nothing. Inline CSS/JS only (nothing from any host); the script is
+  progressive enhancement. No interactive graph viewer yet (graphs are static SVG).
 - **AI / agents:** the Repository Orientation Agent and entity summaries run in
   deterministic mode over the read-only tool API (`atlas-agents`, see AGENTS.md).
   No AI anywhere; local-AI mode remains future and optional.
@@ -171,7 +178,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 ## Current build health
 
 - **Build:** `mvn clean install` → **BUILD SUCCESS** (18 modules).
-- **Test:** `mvn test` → **187 tests, 0 failures, 0 errors** across model, scanner,
+- **Test:** `mvn test` → **193 tests, 0 failures, 0 errors** across model, scanner,
   parsers (Java, Ada, configuration, build, SQL), index, analysis, core, graph,
   tools, agents, onboarding and the explorer UI.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging

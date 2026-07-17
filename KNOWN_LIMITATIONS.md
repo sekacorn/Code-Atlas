@@ -131,10 +131,18 @@ expectations. It is updated as limitations are addressed.
   design).
 - The explorer (`atlas serve`) is a **read-only** view: it searches the model and
   navigates entities, lineage and build membership, but it cannot edit, re-scan or
-  change anything, and it renders only what the persisted index already holds. It is
-  server-rendered with no JavaScript, so there is **no interactive graph viewer** —
-  graphs are the same static SVG the CLI exports. It binds to loopback only and is
-  not multi-user, authenticated or hardened for network exposure; it is a local tool.
+  change anything, and it renders only what the persisted index already holds.
+- Its CSS and JavaScript are **inline and self-contained** — nothing is fetched from
+  any host, so it runs fully offline. The script is **progressive enhancement only**
+  (theme switching, live list filtering, a "/" shortcut); search, navigation and the
+  theme all work with scripting disabled. It is authorised by a per-response CSP
+  nonce rather than `unsafe-inline`.
+- Graphs are still the **static SVG** the CLI exports — there is no pan/zoom or
+  interactive graph viewer.
+- The explorer is **single-user and unauthenticated by design**: it binds to loopback
+  only and serves a read-only view, so there is no boundary to authenticate across.
+  It is a local tool and is **not** hardened for network exposure — do not put it
+  behind a proxy or bind it to a routable interface.
 
 ## Guided onboarding (`atlas onboard`)
 

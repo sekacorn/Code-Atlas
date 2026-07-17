@@ -36,13 +36,13 @@ final class Pages {
         this.repository = repository;
     }
 
-    private String page(String title, String body) {
-        return Html.page(title, repository, api.scanId(), body);
+    private String page(String title, String body, View view) {
+        return Html.page(title, repository, api.scanId(), body, view);
     }
 
     // ---- overview ----
 
-    String overview() {
+    String overview(View view) {
         Views.RepositorySummaryView s = api.getRepositorySummary().value();
         StringBuilder b = new StringBuilder("<h1>Overview</h1><div class=\"grid\">");
         b.append(stat(String.valueOf(s.totalFiles()), "files"));
@@ -70,7 +70,7 @@ final class Pages {
         }
         b.append("<p class=\"empty\">Type in the search box above to find any entity, then click "
                 + "through its callers, dependencies and data lineage.</p>");
-        return page("Overview", b.toString());
+        return page("Overview", b.toString(), view);
     }
 
     private String stat(String value, String label) {
@@ -79,7 +79,7 @@ final class Pages {
 
     // ---- search ----
 
-    String search(String q, String kind, String language) {
+    String search(String q, String kind, String language, View view) {
         StringBuilder b = new StringBuilder("<h1>Search</h1>");
         b.append("<form class=\"card\" action=\"/search\" method=\"get\">")
                 .append("<input type=\"search\" name=\"q\" value=\"").append(esc(q))
@@ -92,34 +92,35 @@ final class Pages {
 
         if (q.isBlank() && kind.isBlank() && language.isBlank()) {
             b.append(Html.empty("Enter a name, or filter by kind or language."));
-            return page("Search", b.toString());
+            return page("Search", b.toString(), view);
         }
         ToolResult<List<Views.EntityView>> r = api.searchEntities(q,
                 kind.isBlank() ? null : kind, language.isBlank() ? null : language, LIMIT);
         List<Views.EntityView> hits = r.value();
         if (hits.isEmpty()) {
             b.append(Html.empty("Nothing matched within this scan."));
-            return page("Search", b.toString());
+            return page("Search", b.toString(), view);
         }
         b.append("<p class=\"meta\">").append(r.totalMatches()).append(" match(es)")
                 .append(r.truncated() ? ", showing the first " + LIMIT : "").append("</p>");
-        b.append("<table><tr><th>Kind</th><th>Name</th><th>Where</th></tr>");
+        b.append(Html.filterBox("results", "Filter these results…"));
+        b.append("<table id=\"results\"><thead><tr><th>Kind</th><th>Name</th><th>Where</th></tr></thead><tbody>");
         for (Views.EntityView e : hits) {
             b.append("<tr><td><span class=\"chip\">").append(esc(e.kind())).append("</span></td>")
                     .append("<td>").append(entityLink(e.stableId(), e.qualifiedName())).append("</td>")
                     .append("<td class=\"loc\">").append(esc(e.location())).append("</td></tr>");
         }
-        b.append("</table>");
-        return page("Search", b.toString());
+        b.append("</tbody></table>");
+        return page("Search", b.toString(), view);
     }
 
     // ---- entity ----
 
-    String entity(String id) {
+    String entity(String id, View view) {
         Views.EntityView e = api.getEntity(id).value().orElse(null);
         if (e == null) {
             return page("Not found", "<h1>Not found</h1>"
-                    + Html.empty("No entity with stable id '" + id + "' in this scan."));
+                    + Html.empty("No entity with stable id '" + id + "' in this scan."), view);
         }
         StringBuilder b = new StringBuilder("<h1><span class=\"chip\">" + esc(e.kind()) + "</span> "
                 + esc(e.name()) + "</h1>");
@@ -163,7 +164,7 @@ final class Pages {
                 .append(" · ")
                 .append(Html.link("/lineage?id=" + urlEncode(id) + "&dir=downstream", "Trace downstream"))
                 .append("</p>");
-        return page(e.name(), b.toString());
+        return page(e.name(), b.toString(), view);
     }
 
     private String neighbours(String title, ToolResult<List<Views.NeighborView>> r) {
@@ -195,10 +196,10 @@ final class Pages {
 
     // ---- lineage ----
 
-    String lineage(String id, String direction) {
+    String lineage(String id, String direction, View view) {
         Views.EntityView e = api.getEntity(id).value().orElse(null);
         if (e == null) {
-            return page("Not found", "<h1>Not found</h1>" + Html.empty("No entity with id '" + id + "'."));
+            return page("Not found", "<h1>Not found</h1>" + Html.empty("No entity with id '" + id + "'."), view);
         }
         LineageQuery.Direction dir = "upstream".equalsIgnoreCase(direction)
                 ? LineageQuery.Direction.UPSTREAM : LineageQuery.Direction.DOWNSTREAM;
@@ -239,74 +240,77 @@ final class Pages {
                     .append("</span>").append(esc(g.description())).append("</li>"));
             b.append("</ul>");
         }
-        return page("Lineage", b.toString());
+        return page("Lineage", b.toString(), view);
     }
 
     // ---- analysis lists ----
 
-    String deadCode() {
+    String deadCode(View view) {
         List<DeadCodeCandidate> all = api.findDeadCodeCandidates(LIMIT).value();
         StringBuilder b = new StringBuilder("<h1>Dead-code candidates</h1>");
         b.append("<p class=\"meta\">Probable, never certain — each is a candidate for review, "
                 + "not proof. Reflection, DI and dynamic invocation are blind spots.</p>");
         if (all.isEmpty()) {
-            return page("Dead code", b.append(Html.empty("None reported at the default threshold.")).toString());
+            return page("Dead code", b.append(Html.empty("None reported at the default threshold.")).toString(), view);
         }
-        b.append("<table><tr><th>Confidence</th><th>Entity</th><th>Where</th></tr>");
+        b.append(Html.filterBox("dead", "Filter candidates…"));
+        b.append("<table id=\"dead\"><thead><tr><th>Confidence</th><th>Entity</th><th>Where</th></tr></thead><tbody>");
         for (DeadCodeCandidate c : all) {
             b.append("<tr><td>").append(c.confidence()).append("%</td><td>")
                     .append(entityLink(c.stableId(), c.qualifiedName())).append("</td>")
                     .append("<td class=\"loc\">").append(esc(String.valueOf(c.location())))
                     .append("</td></tr>");
         }
-        return page("Dead code", b.append("</table>").toString());
+        return page("Dead code", b.append("</tbody></table>").toString(), view);
     }
 
-    String complexity() {
+    String complexity(View view) {
         List<ComplexityHotspot> all = api.getComplexity(LIMIT).value();
         StringBuilder b = new StringBuilder("<h1>Complexity hotspots</h1>");
         if (all.isEmpty()) {
-            return page("Complexity", b.append(Html.empty("None above the default threshold.")).toString());
+            return page("Complexity", b.append(Html.empty("None above the default threshold.")).toString(), view);
         }
-        b.append("<table><tr><th>Complexity</th><th>Entity</th><th>Where</th></tr>");
+        b.append(Html.filterBox("hot", "Filter hotspots…"));
+        b.append("<table id=\"hot\"><thead><tr><th>Complexity</th><th>Entity</th><th>Where</th></tr></thead><tbody>");
         for (ComplexityHotspot h : all) {
             b.append("<tr><td>").append(h.complexity()).append("</td><td>").append(esc(h.qualifiedName()))
                     .append("</td><td class=\"loc\">").append(esc(String.valueOf(h.location())))
                     .append("</td></tr>");
         }
-        return page("Complexity", b.append("</table>").toString());
+        return page("Complexity", b.append("</tbody></table>").toString(), view);
     }
 
-    String unresolved() {
+    String unresolved(View view) {
         List<Views.UnresolvedReference> all = api.getUnresolvedReferences(LIMIT).value();
         StringBuilder b = new StringBuilder("<h1>Unresolved references</h1>");
         b.append("<p class=\"meta\">References the linker could not connect to a target. These are "
                 + "analysis gaps — treat an absent path as unknown, not absent.</p>");
         if (all.isEmpty()) {
-            return page("Unresolved", b.append(Html.empty("Everything resolved in this scan.")).toString());
+            return page("Unresolved", b.append(Html.empty("Everything resolved in this scan.")).toString(), view);
         }
-        b.append("<table><tr><th>From</th><th>Target</th><th>Kind</th><th>Where</th></tr>");
+        b.append(Html.filterBox("unres", "Filter unresolved…"));
+        b.append("<table id=\"unres\"><thead><tr><th>From</th><th>Target</th><th>Kind</th><th>Where</th></tr></thead><tbody>");
         for (Views.UnresolvedReference u : all) {
             b.append("<tr><td>").append(entityLink(u.fromId(), shortId(u.fromId()))).append("</td>")
                     .append("<td>").append(esc(u.targetName())).append("</td>")
                     .append("<td><span class=\"chip\">").append(esc(u.kind())).append("</span></td>")
                     .append("<td class=\"loc\">").append(esc(u.location())).append("</td></tr>");
         }
-        return page("Unresolved", b.append("</table>").toString());
+        return page("Unresolved", b.append("</tbody></table>").toString(), view);
     }
 
-    String graph(String type, String svg) {
+    String graph(String type, String svg, View view) {
         String body = "<h1>Graph: " + esc(type) + "</h1><p>"
                 + Html.link("/graph?type=dependency", "dependency") + " · "
                 + Html.link("/graph?type=call", "call") + " · "
                 + Html.link("/graph?type=dead-code", "dead-code") + " · "
                 + Html.link("/graph?type=architecture", "architecture") + "</p>"
-                + "<div class=\"card\">" + svg + "</div>";
-        return page("Graph", body);
+                + "<div class=\"card zoomable\">" + svg + "</div>";
+        return page("Graph", body, view);
     }
 
-    String notFound(String path) {
-        return page("Not found", "<h1>Not found</h1>" + Html.empty("No page at '" + path + "'."));
+    String notFound(String path, View view) {
+        return page("Not found", "<h1>Not found</h1>" + Html.empty("No page at '" + path + "'."), view);
     }
 
     private static String shortId(String id) {

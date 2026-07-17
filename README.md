@@ -109,7 +109,7 @@ It directly answers the platform's core questions on a real repository:
 risky, how large the system is, where data comes from and who consumes it, and —
 for a developer arriving cold — where to start.**
 
-**18 Maven modules · 187 passing tests · `mvn clean install` green · no AI, no
+**18 Maven modules · 193 passing tests · `mvn clean install` green · no AI, no
 network, no writes into the analyzed repository.**
 
 ### What works today
@@ -135,7 +135,7 @@ network, no writes into the analyzed repository.**
 | **Agent tool API** | `atlas tool <operation>` / `AtlasToolApi`: a controlled, **database-level read-only** query boundary over the persisted index (callers, dependents, members, lineage, impact, dead code, complexity, build membership, configuration references, summary) with stable ids and evidence on every result. **Every operation is implemented**; a question this repository has no facts for returns supported-but-empty *with the reason*, never a silent empty list — see [AGENTS.md](AGENTS.md) |
 | **Deterministic agents** | `atlas orient` (where do I start / what's central / what couldn't be analyzed), `atlas summarize <id>` (method/component summaries) and `atlas investigate <id>` (where data originates, what transforms it, where it's stored, who consumes it, what's unresolved — with the numbered confirmed path) — **templates over the tool API, no LLM**, confirmed facts separated from labelled inferences, every statement citing stable ids and file:line evidence — see [AGENTS.md](AGENTS.md) |
 | **Guided onboarding** | `atlas onboard <repo>` — one command runs a twelve-stage, deterministic investigation and writes an evidence-backed onboarding package (JSON + self-contained HTML): scan health, inventory, **Java & Ada entry points**, architecture orientation, **Java↔Ada boundary discovery** (JNI/native, process, message, shared-data — never name-similarity alone), representative lineage paths, central components, risks & gaps, a suggested reading order, and grounded questions for subject-matter experts. Read-only; reuses the existing agents; no AI — see [ONBOARDING.md](ONBOARDING.md) |
-| **Explorer UI** | `atlas serve` — a local **read-only** explorer: type in the search box, open any entity, and click through its callers, dependencies, build module and data lineage. Server-rendered HTML needing **no JavaScript**, bound to **loopback only**, `GET`-only, with no external assets — it runs on an offline or locked-down workstation and can modify nothing |
+| **Explorer UI** | `atlas serve` — a local **read-only** explorer: type in the search box, open any entity, and click through its callers, dependencies, build module and data lineage. Light/dark/auto **theme switcher**, live list filtering and `/` to focus search. Bound to **loopback only**, `GET`-only, single-user (no login, because there is no boundary to authenticate across). The CSS and script are **inline — nothing is fetched from any host**, so it runs fully offline; the script is **progressive enhancement**, so everything works with scripting disabled, and it is authorised by a per-response CSP **nonce** rather than `unsafe-inline` |
 | **CLI** | `atlas scan <repo>` — single runnable jar, no install |
 
 ### Dead-code philosophy
