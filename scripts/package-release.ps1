@@ -66,11 +66,23 @@ foreach ($target in $Targets) {
 
     Copy-Item -Path $JarPath -Destination (Join-Path $PackageRoot "atlas.jar")
     Copy-Item -Path $JarPath -Destination (Join-Path $PackagedJarDir "atlas.jar")
-    Copy-Item -Path (Join-Path $RepoRoot "README.md") -Destination $PackageRoot
-    Copy-Item -Path (Join-Path $RepoRoot "KNOWN_LIMITATIONS.md") -Destination $PackageRoot
     Copy-Item -Path (Join-Path $RepoRoot "docs\RELEASE.md") -Destination $PackageRoot
     Copy-Item -Path (Join-Path $RepoRoot "atlas.sh") -Destination $PackageRoot
     Copy-Item -Path (Join-Path $RepoRoot "atlas.ps1") -Destination $PackageRoot
+
+    # The whole doc set ships with the archive: these environments are offline, so a
+    # reader cannot follow a link back to the repository to find the limitations,
+    # the evidence model or the onboarding guide.
+    $Docs = @("README.md", "KNOWN_LIMITATIONS.md", "CURRENT_STATE.md", "EVIDENCE_MODEL.md",
+              "STABLE_IDENTIFIERS.md", "DATA_LINEAGE.md", "ONBOARDING.md", "AGENTS.md",
+              "PERSISTENCE.md", "INCREMENTAL_ANALYSIS.md")
+    foreach ($doc in $Docs) {
+        $source = Join-Path $RepoRoot $doc
+        if (-not (Test-Path $source)) {
+            throw "Release doc missing: $doc"
+        }
+        Copy-Item -Path $source -Destination $PackageRoot
+    }
 
     if ($target.Type -eq "zip") {
         $Archive = Join-Path $DistPath "code-atlas-$Version-$($target.Name).zip"

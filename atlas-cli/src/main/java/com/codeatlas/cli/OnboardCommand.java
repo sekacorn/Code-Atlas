@@ -40,7 +40,7 @@ import java.util.concurrent.Callable;
         description = "Guided, deterministic onboarding for an unfamiliar Java/Ada repository.")
 public final class OnboardCommand implements Callable<Integer> {
 
-    private static final String TOOL_VERSION = "Code Atlas 0.1.0";
+    private static final String TOOL_VERSION = "Code Atlas 0.2.0";
 
     @Parameters(index = "0", description = "Path to the repository root to onboard.")
     private Path repository;

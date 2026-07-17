@@ -12,7 +12,7 @@ import picocli.CommandLine.Command;
  */
 @Command(name = "atlas",
         mixinStandardHelpOptions = true,
-        version = "Code Atlas 0.1.0",
+        version = "Code Atlas 0.2.0",
         description = "Offline software intelligence and static analysis.",
         subcommands = {ScanCommand.class, LineageCommand.class, ToolCommand.class,
                 OrientCommand.class, SummarizeCommand.class, InvestigateCommand.class,
