@@ -80,6 +80,12 @@ be falsifiable — every claim here is checkable against the code or the test su
   (deterministic JSON + self-contained HTML + text) **outside** the repository.
   It reuses the tool API and the deterministic agents; per-stage failures never
   abort the workflow. See [ONBOARDING.md](ONBOARDING.md).
+- **Explorer UI** (`atlas-ui`): `atlas serve` starts a local read-only explorer on
+  loopback — search the model, open an entity, and click through callers, callees,
+  dependencies, members, build module, configuration references and data lineage.
+  Built on the read-only tool API and the JDK's built-in HTTP server (no new
+  dependency); server-rendered HTML with no JavaScript and no external assets;
+  GET-only, with a restrictive Content-Security-Policy and every model value escaped.
 - **CLI** (`atlas-cli`): `atlas scan <repo>` as a single shaded runnable jar;
   options for output dir, persistent index, thresholds, threads.
 
@@ -153,18 +159,21 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
   exports run over these.
 - **Analysis engine:** deterministic; `AnalysisEngine` composes metrics, complexity,
   dead-code, dependency analyzers. No AI anywhere.
-- **CLI:** picocli; `scan`, `lineage`, `tool`, `orient`, `summarize`, `investigate` and `graph` subcommands.
-- **UI:** none (CLI + static HTML by design decision).
+- **CLI:** picocli; `scan`, `lineage`, `tool`, `orient`, `summarize`, `investigate`,
+  `graph`, `onboard` and `serve` subcommands.
+- **UI:** a local read-only explorer (`atlas serve`, `atlas-ui`) plus static HTML
+  reports. Server-rendered, no JavaScript, loopback-only, GET-only — it renders the
+  index and can change nothing. No interactive graph viewer (graphs are static SVG).
 - **AI / agents:** the Repository Orientation Agent and entity summaries run in
   deterministic mode over the read-only tool API (`atlas-agents`, see AGENTS.md).
   No AI anywhere; local-AI mode remains future and optional.
 
 ## Current build health
 
-- **Build:** `mvn clean install` → **BUILD SUCCESS** (17 modules).
-- **Test:** `mvn test` → **176 tests, 0 failures, 0 errors** across model, scanner,
+- **Build:** `mvn clean install` → **BUILD SUCCESS** (18 modules).
+- **Test:** `mvn test` → **187 tests, 0 failures, 0 errors** across model, scanner,
   parsers (Java, Ada, configuration, build, SQL), index, analysis, core, graph,
-  tools, agents and onboarding.
+  tools, agents, onboarding and the explorer UI.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging
   binding on the test classpath); the CLI ships `slf4j-simple` at runtime.
 - **Determinism:** verified — two scans of the same repo produce byte-identical

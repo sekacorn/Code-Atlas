@@ -16,7 +16,7 @@ import picocli.CommandLine.Command;
         description = "Offline software intelligence and static analysis.",
         subcommands = {ScanCommand.class, LineageCommand.class, ToolCommand.class,
                 OrientCommand.class, SummarizeCommand.class, InvestigateCommand.class,
-                GraphCommand.class, OnboardCommand.class})
+                GraphCommand.class, OnboardCommand.class, ServeCommand.class})
 public final class AtlasCli implements Runnable {
 
     @Override

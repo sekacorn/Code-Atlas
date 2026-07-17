@@ -129,7 +129,12 @@ expectations. It is updated as limitations are addressed.
   nodes; for large or dense graphs, export **DOT** and render with Graphviz for
   better routing. There is no interactive graph viewer (CLI + static HTML/SVG by
   design).
-- No interactive UI (CLI + static HTML by design).
+- The explorer (`atlas serve`) is a **read-only** view: it searches the model and
+  navigates entities, lineage and build membership, but it cannot edit, re-scan or
+  change anything, and it renders only what the persisted index already holds. It is
+  server-rendered with no JavaScript, so there is **no interactive graph viewer** —
+  graphs are the same static SVG the CLI exports. It binds to loopback only and is
+  not multi-user, authenticated or hardened for network exposure; it is a local tool.
 
 ## Guided onboarding (`atlas onboard`)
 

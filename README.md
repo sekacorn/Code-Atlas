@@ -46,7 +46,9 @@ Either opens the same interactive menu:
   6) Lineage           trace where data flows
   7) Export a graph    (SVG)
   8) Onboard           guided onboarding package
-  9) Status
+  9) Explore           search + browse the model (read-only UI)
+ 10) Stop explorer
+ 11) Status
   0) Quit
 ```
 
@@ -99,7 +101,7 @@ test-enforced:
 ```
 scan → parse (Java, Ada, configuration, build files, SQL/DDL) → unified model
      → link cross-references → local H2 index → analysis + data lineage
-     → reports / graphs / deterministic agents / guided onboarding
+     → reports / graphs / deterministic agents / guided onboarding / explorer UI
 ```
 
 It directly answers the platform's core questions on a real repository:
@@ -107,7 +109,7 @@ It directly answers the platform's core questions on a real repository:
 risky, how large the system is, where data comes from and who consumes it, and —
 for a developer arriving cold — where to start.**
 
-**17 Maven modules · 176 passing tests · `mvn clean install` green · no AI, no
+**18 Maven modules · 187 passing tests · `mvn clean install` green · no AI, no
 network, no writes into the analyzed repository.**
 
 ### What works today
@@ -133,6 +135,7 @@ network, no writes into the analyzed repository.**
 | **Agent tool API** | `atlas tool <operation>` / `AtlasToolApi`: a controlled, **database-level read-only** query boundary over the persisted index (callers, dependents, members, lineage, impact, dead code, complexity, build membership, configuration references, summary) with stable ids and evidence on every result. **Every operation is implemented**; a question this repository has no facts for returns supported-but-empty *with the reason*, never a silent empty list — see [AGENTS.md](AGENTS.md) |
 | **Deterministic agents** | `atlas orient` (where do I start / what's central / what couldn't be analyzed), `atlas summarize <id>` (method/component summaries) and `atlas investigate <id>` (where data originates, what transforms it, where it's stored, who consumes it, what's unresolved — with the numbered confirmed path) — **templates over the tool API, no LLM**, confirmed facts separated from labelled inferences, every statement citing stable ids and file:line evidence — see [AGENTS.md](AGENTS.md) |
 | **Guided onboarding** | `atlas onboard <repo>` — one command runs a twelve-stage, deterministic investigation and writes an evidence-backed onboarding package (JSON + self-contained HTML): scan health, inventory, **Java & Ada entry points**, architecture orientation, **Java↔Ada boundary discovery** (JNI/native, process, message, shared-data — never name-similarity alone), representative lineage paths, central components, risks & gaps, a suggested reading order, and grounded questions for subject-matter experts. Read-only; reuses the existing agents; no AI — see [ONBOARDING.md](ONBOARDING.md) |
+| **Explorer UI** | `atlas serve` — a local **read-only** explorer: type in the search box, open any entity, and click through its callers, dependencies, build module and data lineage. Server-rendered HTML needing **no JavaScript**, bound to **loopback only**, `GET`-only, with no external assets — it runs on an offline or locked-down workstation and can modify nothing |
 | **CLI** | `atlas scan <repo>` — single runnable jar, no install |
 
 ### Dead-code philosophy
@@ -175,6 +178,7 @@ java -jar atlas-cli/target/atlas.jar summarize sql:table:customer --repo /path/t
 java -jar atlas-cli/target/atlas.jar investigate sql:table:customer --repo /path/to/repo
 java -jar atlas-cli/target/atlas.jar graph --type architecture --format svg --repo /path/to/repo -o arch.svg
 java -jar atlas-cli/target/atlas.jar onboard /path/to/repo --output ./atlas-onboarding-report
+java -jar atlas-cli/target/atlas.jar serve --repo /path/to/repo   # explorer on 127.0.0.1:8138
 ```
 
 `atlas onboard` runs the full guided workflow and writes `onboarding-report.json`,
@@ -224,6 +228,7 @@ Repository → Scanner → Parser framework (plugins) → Unified model
 | `atlas-tools` | Read-only agent tool API over the persisted index |
 | `atlas-agents` | Deterministic agents (Orientation, Data-Lineage Investigator, summaries) |
 | `atlas-onboarding` | Guided repository-onboarding workflow (`atlas onboard`) |
+| `atlas-ui` | Local read-only explorer UI (`atlas serve`) |
 | `atlas-core` | Pipeline orchestration + cross-reference linker |
 | `atlas-cli` | Command-line driver |
 
@@ -246,7 +251,8 @@ remains — all of it drops into the existing, language-neutral core without cha
   and literal in-code SQL (JDBC / `@Query`) have both landed; what remains on the data
   side is **Ada database bindings** — the last piece before a table shared by Java and
   Ada could register as a genuine cross-language boundary.
-- **`atlas-ui`:** interactive dashboard, explorer, graph viewer.
+- **`atlas-ui`:** the read-only explorer has landed (`atlas serve`). Still open: richer
+  visual navigation (an interactive graph viewer rather than static SVG).
 - **`atlas-ai`:** optional local explanation layer (consumes structured context only;
   never scans source directly). The platform is fully useful with it absent.
 - **Analysis:** unused-package detection, architecture compliance rules, PDF reports,

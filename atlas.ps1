@@ -8,6 +8,8 @@
     .\atlas.ps1 start               serve the report at http://127.0.0.1:<port> (loopback only)
     .\atlas.ps1 stop                stop the report server
     .\atlas.ps1 status              show build / scan / server status
+    .\atlas.ps1 explore             open the read-only explorer UI (search + browse)
+    .\atlas.ps1 explore-stop        stop the explorer
     .\atlas.ps1 orient|lineage|graph|onboard [arg]   query/onboard the last-scanned repo
 
   Requires JDK 21 on PATH (and Maven for "build"). Serves via the JDK's built-in
@@ -24,7 +26,9 @@ $ReportDir = Join-Path $AtlasHome "atlas-report"
 $StateDir  = Join-Path $AtlasHome ".atlas-run"
 $PidFile   = Join-Path $StateDir "server.pid"
 $RepoFile  = Join-Path $StateDir "last-repo"
+$UiPidFile = Join-Path $StateDir "explorer.pid"
 if ($env:ATLAS_PORT) { $Port = $env:ATLAS_PORT } else { $Port = "8137" }
+if ($env:ATLAS_UI_PORT) { $UiPort = $env:ATLAS_UI_PORT } else { $UiPort = "8138" }
 New-Item -ItemType Directory -Force -Path $StateDir | Out-Null
 
 function Have($cmd) { return [bool](Get-Command $cmd -ErrorAction SilentlyContinue) }
@@ -133,6 +137,44 @@ function Do-Graph($type) {
     if ($LASTEXITCODE -eq 0) { Ok "Graph written: $out (view via the report server or open directly)" }
 }
 
+function Explorer-Running {
+    if (-not (Test-Path $UiPidFile)) { return $false }
+    try { $procId = [int]([System.IO.File]::ReadAllText($UiPidFile).Trim()) } catch { return $false }
+    return [bool](Get-Process -Id $procId -ErrorAction SilentlyContinue)
+}
+
+function Do-Explore {
+    if (-not (Ensure-Jar)) { return }
+    $r = Require-Repo; if (-not $r) { return }
+    $url = "http://127.0.0.1:$UiPort/"
+    if (Explorer-Running) { Ok "Explorer already running: $url"; Start-Process $url; return }
+    $p = Start-Process -FilePath "java" `
+        -ArgumentList @("-jar", $Jar, "serve", "--repo", $r, "--port", "$UiPort") `
+        -NoNewWindow -PassThru `
+        -RedirectStandardOutput (Join-Path $StateDir "explorer.log") `
+        -RedirectStandardError (Join-Path $StateDir "explorer.err")
+    [System.IO.File]::WriteAllText($UiPidFile, "$($p.Id)")
+    Start-Sleep -Seconds 2
+    if (Explorer-Running) {
+        Ok "Explorer (read-only, loopback only): $url"
+        Start-Process $url
+    } else {
+        Fail "Explorer did not start; see $StateDir\explorer.log"
+        Remove-Item $UiPidFile -ErrorAction SilentlyContinue
+    }
+}
+
+function Do-ExploreStop {
+    if (Explorer-Running) {
+        Stop-Process -Id ([int]([System.IO.File]::ReadAllText($UiPidFile).Trim())) -Force -ErrorAction SilentlyContinue
+        Remove-Item $UiPidFile -ErrorAction SilentlyContinue
+        Ok "Explorer stopped."
+    } else {
+        Remove-Item $UiPidFile -ErrorAction SilentlyContinue
+        Write-Host "  No explorer is running."
+    }
+}
+
 function Do-Onboard {
     if (-not (Ensure-Jar)) { return }
     $r = Require-Repo; if (-not $r) { return }
@@ -162,7 +204,9 @@ function Show-Menu {
         Write-Host "  6) Lineage           trace where data flows"
         Write-Host "  7) Export a graph    (SVG)"
         Write-Host "  8) Onboard           guided onboarding package"
-        Write-Host "  9) Status"
+        Write-Host "  9) Explore           search + browse the model (read-only UI)"
+        Write-Host " 10) Stop explorer"
+        Write-Host " 11) Status"
         Write-Host "  0) Quit"
         $choice = Read-Host "  Choose"
         switch ($choice) {
@@ -174,8 +218,10 @@ function Show-Menu {
             "6" { Do-Lineage "" }
             "7" { Do-Graph "" }
             "8" { Do-Onboard }
-            "9" { Do-Status }
-            "0" { Do-Stop; Write-Host "  Goodbye."; return }
+            "9" { Do-Explore }
+            "10" { Do-ExploreStop }
+            "11" { Do-Status }
+            "0" { Do-Stop; Do-ExploreStop; Write-Host "  Goodbye."; return }
             default { Fail "Unknown option: $choice" }
         }
     }
@@ -191,6 +237,8 @@ switch ($Action.ToLower()) {
     "lineage" { Do-Lineage $Arg }
     "graph"   { Do-Graph $Arg }
     "onboard" { Do-Onboard }
+    "explore" { Do-Explore }
+    "explore-stop" { Do-ExploreStop }
     "menu"    { Show-Menu }
     default   { Fail "Unknown action: $Action (try: build scan start stop status orient lineage graph onboard)"; exit 2 }
 }

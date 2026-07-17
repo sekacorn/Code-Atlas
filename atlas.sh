@@ -8,6 +8,8 @@
 #   ./atlas.sh start           serve the report at http://127.0.0.1:<port> (loopback only)
 #   ./atlas.sh stop            stop the report server
 #   ./atlas.sh status          show build / scan / server status
+#   ./atlas.sh explore         open the read-only explorer UI (search + browse)
+#   ./atlas.sh explore-stop    stop the explorer
 #   ./atlas.sh orient|lineage|graph|onboard   query/onboard the last-scanned repo
 #
 # Requires JDK 21 on PATH (and Maven for "build"). Serves via the JDK's built-in
@@ -22,7 +24,9 @@ REPORT_DIR="$ATLAS_HOME/atlas-report"
 STATE_DIR="$ATLAS_HOME/.atlas-run"
 PID_FILE="$STATE_DIR/server.pid"
 REPO_FILE="$STATE_DIR/last-repo"
+UI_PID_FILE="$STATE_DIR/explorer.pid"
 PORT="${ATLAS_PORT:-8137}"
+UI_PORT="${ATLAS_UI_PORT:-8138}"
 mkdir -p "$STATE_DIR"
 
 log()  { printf '%s\n' "$*"; }
@@ -140,6 +144,30 @@ do_graph() {
   fi
 }
 
+do_explore() {
+  ensure_jar || return 1; local r; r="$(require_repo)" || return 1
+  if [[ -f "$UI_PID_FILE" ]] && kill -0 "$(cat "$UI_PID_FILE" 2>/dev/null)" 2>/dev/null; then
+    ok "Explorer already running: http://127.0.0.1:$UI_PORT/"; open_url "http://127.0.0.1:$UI_PORT/"; return 0
+  fi
+  java -jar "$JAR" serve --repo "$r" --port "$UI_PORT" >"$STATE_DIR/explorer.log" 2>&1 &
+  echo "$!" > "$UI_PID_FILE"
+  sleep 2
+  if kill -0 "$(cat "$UI_PID_FILE")" 2>/dev/null; then
+    ok "Explorer (read-only, loopback only): http://127.0.0.1:$UI_PORT/"
+    open_url "http://127.0.0.1:$UI_PORT/"
+  else
+    err "Explorer did not start; see $STATE_DIR/explorer.log"; rm -f "$UI_PID_FILE"; return 1
+  fi
+}
+
+do_explore_stop() {
+  if [[ -f "$UI_PID_FILE" ]] && kill -0 "$(cat "$UI_PID_FILE" 2>/dev/null)" 2>/dev/null; then
+    kill "$(cat "$UI_PID_FILE")" 2>/dev/null; rm -f "$UI_PID_FILE"; ok "Explorer stopped."
+  else
+    rm -f "$UI_PID_FILE"; log "  No explorer is running."
+  fi
+}
+
 do_onboard() {
   ensure_jar || return 1; local r; r="$(require_repo)" || return 1
   local out="$ATLAS_HOME/atlas-onboarding-report"
@@ -170,7 +198,9 @@ menu() {
     printf '  6) Lineage           trace where data flows\n'
     printf '  7) Export a graph    (SVG)\n'
     printf '  8) Onboard           guided onboarding package\n'
-    printf '  9) Status\n'
+    printf '  9) Explore           search + browse the model (read-only UI)\n'
+    printf ' 10) Stop explorer\n'
+    printf ' 11) Status\n'
     printf '  0) Quit\n'
     read -rp "  Choose: " choice
     case "$choice" in
@@ -182,8 +212,10 @@ menu() {
       6) do_lineage;;
       7) do_graph;;
       8) do_onboard;;
-      9) do_status;;
-      0) do_stop; log "  Goodbye."; exit 0;;
+      9) do_explore;;
+      10) do_explore_stop;;
+      11) do_status;;
+      0) do_stop; do_explore_stop; log "  Goodbye."; exit 0;;
       *) err "Unknown option: $choice";;
     esac
   done
@@ -199,6 +231,8 @@ case "${1:-menu}" in
   lineage) shift; do_lineage "${1:-}";;
   graph)   shift; do_graph "${1:-}";;
   onboard) do_onboard;;
+  explore) do_explore;;
+  explore-stop) do_explore_stop;;
   menu|"") menu;;
   -h|--help|help)
     sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//';;

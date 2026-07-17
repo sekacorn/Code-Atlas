@@ -38,6 +38,7 @@
         <module>atlas-tools</module>
         <module>atlas-agents</module>
         <module>atlas-onboarding</module>
+        <module>atlas-ui</module>
         <module>atlas-core</module>
         <module>atlas-cli</module>
     </modules>
@@ -131,6 +132,11 @@
             <dependency>
                 <groupId>com.codeatlas</groupId>
                 <artifactId>atlas-onboarding</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.codeatlas</groupId>
+                <artifactId>atlas-ui</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
