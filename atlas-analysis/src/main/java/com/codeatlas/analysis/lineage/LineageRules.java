@@ -46,6 +46,10 @@ public final class LineageRules {
     public static final String REPOSITORY_TOUCH = "ATLAS-LINEAGE-REPOSITORY-003";
     /** A detected reference whose target could not be identified — kept, never dropped. */
     public static final String UNRESOLVED = "ATLAS-LINEAGE-UNRESOLVED-001";
+    /** Table touched by a literal SQL statement (JDBC or {@code @Query}) in a body. */
+    public static final String SQL_LITERAL = "ATLAS-LINEAGE-SQL-001";
+    /** Table named by a literal fragment of SQL that is assembled at runtime (inferred). */
+    public static final String SQL_DYNAMIC = "ATLAS-LINEAGE-SQL-002";
 
     // ---- Ada rules ----
 

@@ -58,9 +58,15 @@ expectations. It is updated as limitations are addressed.
   attribute was inferred from JPA naming and no parsed DDL declares it. Limits:
   this is a statement scanner, not a SQL grammar — a view is recorded as an object
   but its query is **not** analysed (no view→table lineage), and stored procedures,
-  triggers, dynamic SQL, vendor extensions and partitioning are not modeled. JDBC
-  and literal in-code SQL are still not extracted, so code→table edges come only
-  from JPA mappings.
+  triggers, dynamic SQL, vendor extensions and partitioning are not modeled.
+- **Literal SQL in code** (JDBC and `@Query`) is read for the tables it touches, so
+  code→table edges no longer come only from JPA mappings. Only the derived table
+  name and read/write direction are stored, never the SQL text. Limits: SQL built at
+  runtime is only partly visible (its literal fragments name real tables, but the
+  edge is `INFERRED` at 0.60); SQL built entirely from variables is invisible; a
+  table named only by SQL is modeled but carries no `declaredIn`. **Ada database
+  bindings are still not parsed**, so a table shared between Java and Ada is not yet
+  detectable as a cross-language boundary.
 
 ## Analysis
 
@@ -71,7 +77,8 @@ expectations. It is updated as limitations are addressed.
   endpoint → … → table; Ada: console input → procedure → transformation → package
   state → output, each with per-edge evidence (see [DATA_LINEAGE.md](DATA_LINEAGE.md)).
   Java limits: JAX-RS unsupported; receiver resolution does not follow local
-  variables or chained calls; JDBC/literal-SQL extraction not implemented;
+  variables or chained calls; literal SQL is extracted but runtime-assembled SQL is
+  only partly visible (labelled INFERRED);
   single-parameter transformations; default table naming is an inference. Ada
   limits: package-level state only; unqualified cross-package reads and inner-block
   shadowing are blind spots; overloads stay ambiguous (no argument-type matching);

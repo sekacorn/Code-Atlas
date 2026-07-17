@@ -61,6 +61,12 @@ public final class Entity {
         public static final String DB_OBJECT_TYPE = "dbObjectType";        // table (views/procs are future work)
         public static final String TRANSFORMATION = "transformation";      // true on detected mapping methods
         public static final String NATIVE_METHOD = "nativeMethod";         // true on a Java 'native' method (JNI boundary)
+        // Tables a behaviour touches through literal SQL in its body (comma-joined,
+        // normalized names). Only the derived fact is kept — never the SQL text.
+        public static final String SQL_READS = "sqlReads";
+        public static final String SQL_WRITES = "sqlWrites";
+        /** true when SQL is assembled at runtime, so the statement is only partly known. */
+        public static final String SQL_DYNAMIC = "sqlDynamic";
 
         private Attributes() {
         }

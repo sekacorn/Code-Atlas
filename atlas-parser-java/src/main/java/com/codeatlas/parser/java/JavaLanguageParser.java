@@ -30,6 +30,7 @@ import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
@@ -283,6 +284,9 @@ public final class JavaLanguageParser implements RepositoryParser {
                 b.attribute(Entity.Attributes.NATIVE_METHOD, true);
             }
         }
+        // Literal SQL (JDBC statements, @Query) names the tables this behaviour
+        // touches. Without it a table is only reachable through a JPA mapping.
+        applySqlAccess(callable, b);
         Entity entity = b.build();
         ctx.out.entity(entity);
         ctx.out.relationship(contains(owner.id(), entity.id()));
@@ -473,6 +477,48 @@ public final class JavaLanguageParser implements RepositoryParser {
             return EntityKind.ANNOTATION;
         }
         return EntityKind.CLASS;
+    }
+
+    /**
+     * Records the tables a callable touches through literal SQL — its own body's
+     * string literals and any {@code @Query} annotation. Only the derived table
+     * names and the read/write direction are kept; the SQL text is never stored.
+     *
+     * <p>A statement built by concatenation is only partly visible: the literal
+     * fragments are still read, and the callable is marked {@code sqlDynamic} so the
+     * lineage rule lowers its confidence and reports the gap rather than implying the
+     * statement was fully understood.
+     */
+    private void applySqlAccess(CallableDeclaration<?> callable, Entity.Builder b) {
+        Set<String> reads = new java.util.TreeSet<>();
+        Set<String> writes = new java.util.TreeSet<>();
+        boolean dynamic = false;
+
+        for (com.github.javaparser.ast.expr.StringLiteralExpr lit
+                : callable.findAll(com.github.javaparser.ast.expr.StringLiteralExpr.class)) {
+            String text = lit.getValue();
+            if (!SqlLiterals.looksLikeSql(text)) {
+                continue;
+            }
+            SqlLiterals.collect(text, reads, writes);
+            // A SQL literal spliced into a larger expression is a fragment of a
+            // statement assembled at runtime.
+            if (lit.getParentNode().filter(p -> p instanceof BinaryExpr).isPresent()) {
+                dynamic = true;
+            }
+        }
+        if (reads.isEmpty() && writes.isEmpty() && !dynamic) {
+            return;
+        }
+        if (!reads.isEmpty()) {
+            b.attribute(Entity.Attributes.SQL_READS, String.join(",", reads));
+        }
+        if (!writes.isEmpty()) {
+            b.attribute(Entity.Attributes.SQL_WRITES, String.join(",", writes));
+        }
+        if (dynamic) {
+            b.attribute(Entity.Attributes.SQL_DYNAMIC, true);
+        }
     }
 
     private static boolean isMainMethod(CallableDeclaration<?> c) {

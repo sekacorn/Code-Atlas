@@ -62,6 +62,7 @@ public final class LineageAnalyzer {
         Map<String, TableRef> tablesByRepositoryQn = ruleRepositories(tablesByEntityQn);
         ruleEndpointIo();
         ruleCallsAndPersistence(tablesByRepositoryQn);
+        ruleSqlLiterals();
         ruleTransformations();
         ruleValidation();
         model.addRelationships(newEdges);
@@ -358,6 +359,77 @@ public final class LineageAnalyzer {
     }
 
     // ---- helpers ----
+
+    /**
+     * Turns literal SQL the Java parser found into table reads and writes.
+     *
+     * <p>This runs after the JPA rules so a statement can resolve against a table
+     * however that table came to be known — declared by parsed DDL, or implied by an
+     * {@code @Entity}. A table named only by SQL is created here for the same reason
+     * a JPA-mapped one is: the statement is evidence that it exists. It carries no
+     * {@code declaredIn}, so a reader can still tell a declared table from an
+     * assumed one.
+     *
+     * <p>SQL assembled at runtime yields a lower-confidence, explicitly inferred edge:
+     * the literal fragments name a real table, but the whole statement was never
+     * visible, so the edge must not claim the certainty of a complete one.
+     */
+    private void ruleSqlLiterals() {
+        List<Entity> callers = model.entities().stream()
+                .filter(e -> e.attribute(Entity.Attributes.SQL_READS).isPresent()
+                        || e.attribute(Entity.Attributes.SQL_WRITES).isPresent())
+                .sorted(java.util.Comparator.comparing(Entity::id))
+                .toList();
+
+        for (Entity caller : callers) {
+            boolean dynamic = caller.boolAttribute(Entity.Attributes.SQL_DYNAMIC, false);
+            SourceLocation loc = caller.location().orElse(null);
+            String rule = dynamic ? LineageRules.SQL_DYNAMIC : LineageRules.SQL_LITERAL;
+            // A complete literal statement names its tables outright; a fragment of a
+            // runtime-assembled statement only suggests them.
+            double confidence = dynamic ? 0.60 : 0.95;
+            ResolutionStatus status = dynamic ? ResolutionStatus.INFERRED : ResolutionStatus.RESOLVED;
+
+            emitSqlEdges(caller, Entity.Attributes.SQL_READS, RelationshipKind.READS_FROM,
+                    rule, confidence, status, loc, dynamic);
+            emitSqlEdges(caller, Entity.Attributes.SQL_WRITES, RelationshipKind.WRITES_TO,
+                    rule, confidence, status, loc, dynamic);
+        }
+    }
+
+    private void emitSqlEdges(Entity caller, String attribute, RelationshipKind kind, String rule,
+                              double confidence, ResolutionStatus status, SourceLocation loc,
+                              boolean inferred) {
+        String joined = caller.attribute(attribute).orElse("");
+        if (joined.isBlank()) {
+            return;
+        }
+        for (String tableName : joined.split(",")) {
+            String name = tableName.trim();
+            if (name.isEmpty()) {
+                continue;
+            }
+            Entity table = tableNamed(name);
+            emit(kind, caller.id(), table.id(), rule, confidence, status, loc, inferred);
+        }
+    }
+
+    /** The table with this name, creating it when nothing has declared or mapped it yet. */
+    private Entity tableNamed(String name) {
+        String id = Entity.stableId("sql", EntityKind.DATABASE_OBJECT, name);
+        Entity existing = model.entity(id).orElse(null);
+        if (existing != null) {
+            return existing;
+        }
+        Entity table = Entity.builder(EntityKind.DATABASE_OBJECT, name)
+                .qualifiedName(name)
+                .language("sql")
+                .attribute(Entity.Attributes.DB_OBJECT_TYPE, "table")
+                .attribute(Entity.Attributes.EXTERNALLY_EXPOSED, true)
+                .build();
+        model.addEntity(table);
+        return table;
+    }
 
     private void emit(RelationshipKind kind, String fromId, String toId, String rule,
                       double confidence, ResolutionStatus status, SourceLocation location, boolean inferred) {

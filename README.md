@@ -107,7 +107,7 @@ It directly answers the platform's core questions on a real repository:
 risky, how large the system is, where data comes from and who consumes it, and —
 for a developer arriving cold — where to start.**
 
-**17 Maven modules · 164 passing tests · `mvn clean install` green · no AI, no
+**17 Maven modules · 176 passing tests · `mvn clean install` green · no AI, no
 network, no writes into the analyzed repository.**
 
 ### What works today
@@ -243,9 +243,9 @@ remains — all of it drops into the existing, language-neutral core without cha
 
 - **Parsers:** JSON configuration, custom proprietary formats (`.workflow`, `.mapping`,
   `.rules`, …), and further languages (C/C++, Python, COBOL, Fortran). SQL/DDL schema
-  has landed; what remains on the data side is **JDBC / literal in-code SQL** and **Ada
-  database bindings** — together they would let a table shared by Java and Ada register
-  as a genuine cross-language boundary.
+  and literal in-code SQL (JDBC / `@Query`) have both landed; what remains on the data
+  side is **Ada database bindings** — the last piece before a table shared by Java and
+  Ada could register as a genuine cross-language boundary.
 - **`atlas-ui`:** interactive dashboard, explorer, graph viewer.
 - **`atlas-ai`:** optional local explanation layer (consumes structured context only;
   never scans source directly). The platform is fully useful with it absent.

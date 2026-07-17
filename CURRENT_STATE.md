@@ -112,8 +112,8 @@ be falsifiable — every claim here is checkable against the code or the test su
   DATA_LINEAGE.md). Still missing: config/SQL parser input to lineage.
 - Custom-format parsers, and JSON configuration. (Configuration XML/YAML/properties,
   build files (Maven/Gradle/`.gpr`) and SQL/DDL schema are implemented.)
-- JDBC / literal in-code SQL extraction, and Ada database bindings — so a table
-  shared between Java and Ada is still not detectable as a cross-language boundary.
+- Ada database bindings — so a table shared between Java and Ada is still not
+  detectable as a cross-language boundary. (JDBC / literal in-code SQL is extracted.)
 - ~~Build membership feeding dead-code / entry-point analysis~~ **Done**: files are
   assigned to their owning module, `get_build_membership` answers, and a build-declared
   main is an entry point rather than a dead-code candidate. Build membership does not
@@ -162,7 +162,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 ## Current build health
 
 - **Build:** `mvn clean install` → **BUILD SUCCESS** (17 modules).
-- **Test:** `mvn test` → **164 tests, 0 failures, 0 errors** across model, scanner,
+- **Test:** `mvn test` → **176 tests, 0 failures, 0 errors** across model, scanner,
   parsers (Java, Ada, configuration, build, SQL), index, analysis, core, graph,
   tools, agents and onboarding.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging

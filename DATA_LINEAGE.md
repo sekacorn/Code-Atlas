@@ -13,7 +13,7 @@ involved anywhere in lineage construction.
   package state → reader procedure → console output`, with qualified cross-package
   state access and explicit gaps for calls into withed-but-unanalyzed units.
 
-JAX-RS, JDBC/SQL extraction and message queues are not yet implemented (see
+JAX-RS and message queues are not yet implemented (see
 [Known limitations](#known-limitations)).
 
 ## Example
@@ -49,6 +49,8 @@ Unresolved:
 | Repository → entity | interface extending `JpaRepository`/`CrudRepository`/… : first type argument is the managed entity | RESOLVED |
 | Entity → table | `@Table(name=…)` string literal; without it, the lower-cased simple class name is used as a **documented inference** (real physical naming is configuration-dependent) | RESOLVED / INFERRED |
 | Read vs write | repository method prefixes — write: `save/insert/update/delete/remove/persist/merge`; read: `find/get/read/query/count/exists/search/stream`; anything else becomes a conservative `uses` edge, never a fabricated write | RESOLVED |
+| Literal SQL (JDBC / `@Query`) | tables named by a complete literal statement in a body: `SELECT`/`JOIN` → reads, `INSERT INTO`/`UPDATE`/`DELETE FROM`/`MERGE INTO` → writes (an `INSERT … SELECT` writes its target *and* reads its source). Only the derived table name and direction are stored — never the SQL text | RESOLVED |
+| Runtime-assembled SQL | a literal fragment spliced into a larger expression still names a real table, but the whole statement was never visible, so the edge is lowered to 0.60 and marked inferred; SQL built entirely from variables is invisible | INFERRED |
 | Unresolvable references | a call through a declared field whose type is not in the repository becomes an explicit **UNRESOLVED** edge and a first-class gap | UNRESOLVED |
 
 ## Relationship types
@@ -110,6 +112,8 @@ Confidence is **fixed per rule** — never produced by a model.
 | `ATLAS-LINEAGE-ENDPOINT-001` | endpoint from mapping annotations | 1.00 |
 | `ATLAS-LINEAGE-ENDPOINT-002` | endpoint request/response DTO connection | 0.95 |
 | `ATLAS-LINEAGE-CALL-001` | call resolved via declared receiver type / same class | 0.95 |
+| `ATLAS-LINEAGE-SQL-001` | table read/written by a complete literal SQL statement (JDBC or `@Query`) | 0.95 |
+| `ATLAS-LINEAGE-SQL-002` | table named by a literal fragment of SQL assembled at runtime (inferred) | 0.60 |
 | `ATLAS-LINEAGE-DI-001` | interface call with unique implementation | 0.90 |
 | `ATLAS-LINEAGE-DI-002` | interface call with several implementations (each kept) | 0.50, ambiguous |
 | `ATLAS-LINEAGE-MAP-001` | transformation via type flow + output instantiation | 0.90 |
@@ -326,7 +330,14 @@ Java:
   without a verb-specific annotation does not produce an endpoint.
 - Receiver resolution covers declared fields, `this.field` and static type names;
   local variables and chained calls (`a.b().c()`) are not followed.
-- JDBC / literal SQL extraction is not implemented; dynamic SQL remains out of
+- **Literal SQL is extracted** (JDBC statements and `@Query`): the tables a body
+  reads and writes become `READS_FROM` / `WRITES_TO` edges, so a table is no longer
+  reachable only through a JPA mapping. Only the derived table names and direction
+  are stored — never the SQL text. **SQL assembled at runtime** is only partly
+  visible: literal fragments still name their tables, but the edge is marked
+  `INFERRED` at 0.60 because the whole statement was never seen. A statement built
+  entirely from variables is invisible. Stored procedures, triggers and vendor
+  extensions are not modeled; dynamic SQL remains out of
   scope by design.
 - Transformation detection covers single-parameter methods.
 - Default table naming is an inference; real physical naming strategies are
