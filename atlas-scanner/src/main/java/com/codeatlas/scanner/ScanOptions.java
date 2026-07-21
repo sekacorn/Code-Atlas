@@ -9,6 +9,8 @@ import java.util.Set;
  */
 public final class ScanOptions {
 
+    private static final int MAX_DEFAULT_THREADS = 32;
+
     /** Directory names excluded by default (build output, VCS metadata, deps). */
     public static final Set<String> DEFAULT_EXCLUDED_DIRS = Set.of(
             ".git", ".svn", ".hg",
@@ -56,7 +58,8 @@ public final class ScanOptions {
     public static final class Builder {
         private final Set<String> excludedDirs = new LinkedHashSet<>(DEFAULT_EXCLUDED_DIRS);
         private long maxFileSizeBytes = 8L * 1024 * 1024; // 8 MiB
-        private int threads = Math.max(1, Runtime.getRuntime().availableProcessors());
+        private int threads = Math.max(1,
+                Math.min(MAX_DEFAULT_THREADS, Runtime.getRuntime().availableProcessors()));
         private boolean followSymlinks = false;
 
         public Builder excludeDir(String name) {

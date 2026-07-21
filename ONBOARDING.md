@@ -7,9 +7,8 @@ deterministic agents into one practical sequence — **no AI, no network, no cha
 to the analyzed repository.**
 
 > Code Atlas onboarding provides **evidence-backed software understanding, not
-> operational authorization**. It makes no claim of DoD approval, FedRAMP
-> authorization, classified-system approval, security accreditation, or complete
-> understanding of any system. Every finding is traceable to source evidence.
+> operational authorization, certification, or accreditation**. It does not claim
+> complete understanding of any system. Every finding is traceable to source evidence.
 
 ## Purpose
 
@@ -22,10 +21,10 @@ first? Which questions should I take to an experienced engineer?*
 
 ## Intended users
 
-Engineers picking up mission-critical or legacy Java/Ada systems in **controlled,
-offline environments** — disconnected development networks, government-contractor
-workstations, restricted repositories — where documentation is often incomplete and
-cloud tools are unavailable.
+Engineers picking up high-assurance or legacy Java/Ada systems in **controlled,
+offline environments** — disconnected development networks, managed workstations,
+and restricted repositories — where documentation is often incomplete and cloud
+tools are unavailable.
 
 ## CLI usage
 

@@ -1,6 +1,7 @@
 package com.codeatlas.scanner;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
@@ -47,5 +48,25 @@ class RepositoryScannerTest {
         ScanResult result = new RepositoryScanner().scan(root, ScanOptions.defaults());
         var hashes = result.files().stream().map(ScannedFile::contentHash).distinct().toList();
         assertEquals(1, hashes.size(), "same bytes -> same hash");
+    }
+
+    @Test
+    void followsDirectorySymlinksOnlyWhenRequested(@TempDir Path root) throws IOException {
+        Path real = Files.createDirectories(root.resolve("real"));
+        Files.writeString(real.resolve("Linked.java"), "class Linked {}");
+        Path link = root.resolve("linked");
+        try {
+            Files.createSymbolicLink(link, real);
+        } catch (UnsupportedOperationException | IOException | SecurityException e) {
+            Assumptions.assumeTrue(false, "symbolic links are unavailable: " + e.getMessage());
+        }
+
+        ScanResult defaultScan = new RepositoryScanner().scan(root, ScanOptions.defaults());
+        assertFalse(defaultScan.files().stream().anyMatch(f -> f.relativePath().startsWith("linked/")));
+
+        ScanOptions following = ScanOptions.builder().followSymlinks(true).build();
+        ScanResult followedScan = new RepositoryScanner().scan(root, following);
+        assertTrue(followedScan.files().stream()
+                .anyMatch(f -> f.relativePath().equals("linked/Linked.java")));
     }
 }

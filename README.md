@@ -82,6 +82,32 @@ For the underlying commands and every option, see [Build](#build) and [Run](#run
 
 ---
 
+## Screenshots
+
+The local explorer provides searchable, read-only navigation over a persisted scan.
+
+| Overview | Search |
+|---|---|
+| ![Explorer overview](docs/images/screenshot-explorer-overview.jpg) | ![Explorer search](docs/images/screenshot-explorer-search.jpg) |
+
+| Architecture graph | Dead-code candidates |
+|---|---|
+| ![Explorer architecture graph](docs/images/screenshot-explorer-architecture-graph.jpg) | ![Explorer dead-code candidates](docs/images/screenshot-explorer-dead-code.jpg) |
+
+![Explorer dead-code graph](docs/images/screenshot-explorer-dead-code-graph.jpg)
+
+The static report can be opened directly from disk and remains fully self-contained.
+
+| Dashboard | Data lineage |
+|---|---|
+| ![Static report dashboard](docs/images/screenshot-report-dashboard.jpg) | ![Static report data lineage](docs/images/screenshot-report-data-lineage.jpg) |
+
+| Dead-code findings | Component coupling |
+|---|---|
+| ![Static report dead-code findings](docs/images/screenshot-report-dead-code.jpg) | ![Static report component coupling](docs/images/screenshot-report-component-coupling.jpg) |
+
+---
+
 ## Documentation
 
 - [CURRENT_STATE.md](CURRENT_STATE.md) — factual assessment of what is implemented, build health, and technical risks.
@@ -109,7 +135,7 @@ It directly answers the platform's core questions on a real repository:
 risky, how large the system is, where data comes from and who consumes it, and —
 for a developer arriving cold — where to start.**
 
-**18 Maven modules · 193 passing tests · `mvn clean install` green · no AI, no
+**18 Maven modules · 205 tests with 0 failures · `mvn clean install` green · no AI, no
 network, no writes into the analyzed repository.**
 
 ### What works today
@@ -272,5 +298,9 @@ remains — all of it drops into the existing, language-neutral core without cha
 
 Built for controlled environments where local execution, auditability, and
 offline operation matter.
+
+## License
+
+Code Atlas is licensed under the [Apache License 2.0](LICENSE).
 
 [JavaParser]: https://javaparser.org/

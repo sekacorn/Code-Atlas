@@ -71,8 +71,22 @@ foreach ($target in $Targets) {
     Copy-Item -Path $JarPath -Destination (Join-Path $PackageRoot "atlas.jar")
     Copy-Item -Path $JarPath -Destination (Join-Path $PackagedJarDir "atlas.jar")
     Copy-Item -Path (Join-Path $RepoRoot "docs\RELEASE.md") -Destination $PackageRoot
+    Copy-Item -Path (Join-Path $RepoRoot "LICENSE") -Destination $PackageRoot
     Copy-Item -Path (Join-Path $RepoRoot "atlas.sh") -Destination $PackageRoot
     Copy-Item -Path (Join-Path $RepoRoot "atlas.ps1") -Destination $PackageRoot
+
+    $ReleaseNotes = Join-Path $RepoRoot "docs\RELEASE_NOTES_$Version.md"
+    if (Test-Path $ReleaseNotes) {
+        Copy-Item -Path $ReleaseNotes -Destination $PackageRoot
+    }
+
+    $ImageSource = Join-Path $RepoRoot "docs\images"
+    $ImageDestination = Join-Path $PackageRoot "docs\images"
+    if (-not (Test-Path $ImageSource)) {
+        throw "Release screenshots missing: $ImageSource"
+    }
+    New-Item -ItemType Directory -Force -Path $ImageDestination | Out-Null
+    Copy-Item -Path (Join-Path $ImageSource "*") -Destination $ImageDestination
 
     # The whole doc set ships with the archive: these environments are offline, so a
     # reader cannot follow a link back to the repository to find the limitations,

@@ -6,11 +6,18 @@
 
     <groupId>com.codeatlas</groupId>
     <artifactId>code-atlas</artifactId>
-    <version>0.2.1-SNAPSHOT</version>
+    <version>0.2.2</version>
     <packaging>pom</packaging>
 
     <name>Code Atlas</name>
     <description>Offline-first software intelligence and static analysis platform</description>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <!--
       The reactor:

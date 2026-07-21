@@ -113,6 +113,16 @@ class ConfigParserTest {
     }
 
     @Test
+    void xmlRejectsExternalEntities() {
+        ParseResult r = parse("beans.xml", """
+                <!DOCTYPE beans [<!ENTITY external SYSTEM "file:///does-not-exist">]>
+                <beans><bean class="&external;"/></beans>
+                """);
+        assertTrue(r.issues().stream().anyMatch(i -> i.message().contains("XML")));
+        assertTrue(configures(r).isEmpty(), "external entity content must never become a reference");
+    }
+
+    @Test
     void buildDescriptorsAreLeftToTheBuildParser() {
         // The pipeline gives each file to exactly one parser, so ownership must not
         // depend on classpath order: build files belong to atlas-parser-build, which

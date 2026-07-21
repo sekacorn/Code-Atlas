@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
@@ -13,11 +14,15 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 
 /**
  * Recursively scans a repository into a {@link ScanResult}.
@@ -58,7 +63,9 @@ public final class RepositoryScanner {
     private List<Candidate> walk(Path root, ScanOptions options) {
         List<Candidate> candidates = new ArrayList<>();
         try {
-            Files.walkFileTree(root, new SimpleFileVisitor<>() {
+            EnumSet<FileVisitOption> visitOptions = options.followSymlinks()
+                    ? EnumSet.of(FOLLOW_LINKS) : EnumSet.noneOf(FileVisitOption.class);
+            Files.walkFileTree(root, visitOptions, Integer.MAX_VALUE, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                     if (dir.equals(root)) {
@@ -119,8 +126,13 @@ public final class RepositoryScanner {
                     if (sf != null) {
                         results.add(sf);
                     }
-                } catch (Exception e) {
-                    log.warn("Hashing failed: {}", e.getMessage());
+                } catch (InterruptedException e) {
+                    pool.shutdownNow();
+                    Thread.currentThread().interrupt();
+                    throw new ScanException("Interrupted while hashing repository files", e);
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause() != null ? e.getCause() : e;
+                    log.warn("Hashing failed: {}", cause.getMessage());
                 }
             }
             return results;

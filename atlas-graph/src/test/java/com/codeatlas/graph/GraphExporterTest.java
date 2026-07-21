@@ -100,6 +100,12 @@ class GraphExporterTest {
         assertTrue(svg.contains("No nodes for this graph"), "empty graph says so");
     }
 
+    @Test
+    void dotQuotingContainsUntrustedIdentifiersAndControlCharacters() {
+        assertEquals("\"node\\\\\\\"; injected\\nnext\\tvalue\"",
+                DotWriter.quote("node\\\"; injected\nnext\tvalue"));
+    }
+
     private static GraphModel.Node node(GraphModel g, String id) {
         return g.nodes().stream().filter(n -> n.id().equals(id)).findFirst()
                 .orElseThrow(() -> new AssertionError("missing node " + id + " in " + g.title()));

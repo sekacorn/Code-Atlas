@@ -242,6 +242,16 @@ class BuildParserTest {
     }
 
     @Test
+    void mavenPomRejectsExternalEntities() {
+        ParseResult result = parse("pom.xml", """
+                <!DOCTYPE project [<!ENTITY external SYSTEM "file:///does-not-exist">]>
+                <project><artifactId>&external;</artifactId></project>
+                """);
+        assertTrue(result.hasErrors(), "DOCTYPE declarations must be rejected before entity expansion");
+        assertTrue(result.entities().stream().noneMatch(e -> e.kind() == EntityKind.MODULE));
+    }
+
+    @Test
     void everyModuleIsContainedByItsBuildFile() {
         ParseResult r = parse("app/pom.xml", """
                 <project><groupId>g</groupId><artifactId>a</artifactId></project>

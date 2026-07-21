@@ -49,21 +49,21 @@ confidence, resolution status, inferred/ambiguous flags and file:line evidence.
 
 | Operation | Answer | Status |
 |---|---|---|
-| `find_entity` | stable id / `"POST /path"` / unique name suffix → one entity (ambiguity lists candidates, never picks) | ✅ |
-| `get_entity`, `search_entities` | entity views, filtered and paginated | ✅ |
-| `get_source_evidence` | canonical + Ada spec/body locations, file hash | ✅ |
-| `get_callers`, `get_callees` | call-graph neighbors (evidence-bearing lineage edge preferred per pair) | ✅ |
-| `get_dependencies`, `get_dependents` | all resolved usage edges in/out | ✅ |
-| `get_members` | structural members of a container (package → types, type → methods/fields) | ✅ |
-| `get_data_sources`, `get_data_sinks` | DATA_SOURCE / DATA_SINK entities | ✅ |
-| `get_database_references` | edges touching database tables | ✅ |
-| `trace_data_lineage` | full lineage traversal (direction, depth, filters, gaps) | ✅ |
-| `calculate_change_impact` | direct/transitive dependents, database impact, downstream lineage, unresolved risks, stated blind spots | ✅ |
-| `find_dead_code_candidates`, `get_complexity` | analysis findings with evidence | ✅ |
-| `get_repository_summary` | headline facts for orientation | ✅ |
-| `get_unresolved_references`, `get_diagnostics` | honest gaps and scan-time diagnostics | ✅ |
-| `get_build_membership` | the build module that owns an entity, resolved through the file it lives in (Maven / Gradle / GNAT) | ✅ |
-| `get_configuration_references` | config → code references (CONFIGURES edges) with the config key and location | ✅ |
+| `find_entity` | stable id / `"POST /path"` / unique name suffix → one entity (ambiguity lists candidates, never picks) | Implemented |
+| `get_entity`, `search_entities` | entity views, filtered and paginated | Implemented |
+| `get_source_evidence` | canonical + Ada spec/body locations, file hash | Implemented |
+| `get_callers`, `get_callees` | call-graph neighbors (evidence-bearing lineage edge preferred per pair) | Implemented |
+| `get_dependencies`, `get_dependents` | all resolved usage edges in/out | Implemented |
+| `get_members` | structural members of a container (package → types, type → methods/fields) | Implemented |
+| `get_data_sources`, `get_data_sinks` | DATA_SOURCE / DATA_SINK entities | Implemented |
+| `get_database_references` | edges touching database tables | Implemented |
+| `trace_data_lineage` | full lineage traversal (direction, depth, filters, gaps) | Implemented |
+| `calculate_change_impact` | direct/transitive dependents, database impact, downstream lineage, unresolved risks, stated blind spots | Implemented |
+| `find_dead_code_candidates`, `get_complexity` | analysis findings with evidence | Implemented |
+| `get_repository_summary` | headline facts for orientation | Implemented |
+| `get_unresolved_references`, `get_diagnostics` | honest gaps and scan-time diagnostics | Implemented |
+| `get_build_membership` | the build module that owns an entity, resolved through the file it lives in (Maven / Gradle / GNAT) | Implemented |
+| `get_configuration_references` | config → code references (CONFIGURES edges) with the config key and location | Implemented |
 
 Dead-code and complexity views are computed over the persisted model with the
 default thresholds (complexity 10, dead-code confidence 60); a scan run with

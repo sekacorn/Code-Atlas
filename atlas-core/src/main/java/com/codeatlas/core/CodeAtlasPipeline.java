@@ -37,7 +37,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.Set;
 
 /**
@@ -118,8 +121,7 @@ public final class CodeAtlasPipeline {
         }
 
         // Parse changed/new files in parallel (pure CPU + file reads, no store access).
-        Map<String, ParsedFile> parsed = new ConcurrentHashMap<>();
-        toParse.parallelStream().forEach(f -> parsed.put(f.relativePath(), parseFile(f)));
+        Map<String, ParsedFile> parsed = parseFiles(toParse, config.scanOptions().threads());
 
         // Merge cached facts (single-threaded store reads), then fresh results.
         List<CacheEntry> newCacheEntries = new ArrayList<>();
@@ -213,6 +215,37 @@ public final class CodeAtlasPipeline {
 
     /** One freshly parsed file: its scan info, outcome header and raw parser facts. */
     private record ParsedFile(ScannedFile file, CachedFileMeta meta, ParseResult result) {
+    }
+
+    private Map<String, ParsedFile> parseFiles(List<ScannedFile> files, int configuredThreads) {
+        if (files.isEmpty()) {
+            return Map.of();
+        }
+        int workers = Math.min(Math.max(1, configuredThreads), files.size());
+        ExecutorService pool = Executors.newFixedThreadPool(workers);
+        try {
+            List<Future<ParsedFile>> futures = new ArrayList<>(files.size());
+            for (ScannedFile file : files) {
+                futures.add(pool.submit(() -> parseFile(file)));
+            }
+            Map<String, ParsedFile> parsed = new HashMap<>();
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    ParsedFile result = futures.get(i).get();
+                    parsed.put(result.file().relativePath(), result);
+                } catch (InterruptedException e) {
+                    pool.shutdownNow();
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while parsing repository files", e);
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause() != null ? e.getCause() : e;
+                    throw new IllegalStateException("Failed to parse " + files.get(i).relativePath(), cause);
+                }
+            }
+            return parsed;
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     private ParsedFile parseFile(ScannedFile f) {

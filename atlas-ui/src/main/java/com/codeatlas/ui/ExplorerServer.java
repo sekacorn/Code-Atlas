@@ -214,7 +214,7 @@ public final class ExplorerServer implements AutoCloseable {
             throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", contentType);
-        // Defence in depth: nothing may load from another host, and only this
+        // Layered protection: nothing may load from another host, and only this
         // response's own inline script — named by its nonce — may run.
         exchange.getResponseHeaders().set("Content-Security-Policy",
                 "default-src 'none'; script-src 'nonce-" + view.nonce() + "'; "

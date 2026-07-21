@@ -68,6 +68,8 @@ be falsifiable — every claim here is checkable against the code or the test su
   file-hashes; **incremental change detection** (added/changed/removed/unchanged).
 - **Reporting** (`atlas-reporting`): self-contained HTML dashboard (offline, no
   CDN/scripts), JSON, CSV. Now includes an **Analysis Coverage** section.
+
+  ![Static analysis dashboard](docs/images/screenshot-report-dashboard.jpg)
 - **Graph exports** (`atlas-graph`): deterministic Graphviz **DOT** and
   self-contained **SVG** for dependency (risk-coloured coupling), call,
   dead-code (active vs probable-dead) and architecture (role-layered) graphs;
@@ -178,7 +180,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 ## Current build health
 
 - **Build:** `mvn clean install` → **BUILD SUCCESS** (18 modules).
-- **Test:** `mvn test` → **193 tests, 0 failures, 0 errors** across model, scanner,
+- **Test:** `mvn test` → **205 tests, 0 failures, 0 errors** across model, scanner,
   parsers (Java, Ada, configuration, build, SQL), index, analysis, core, graph,
   tools, agents, onboarding and the explorer UI.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging
@@ -192,7 +194,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 
 ## Technical risks
 
-1. ✅ **Unstable identifiers — RESOLVED.** Entities now use deterministic,
+1. **Unstable identifiers — RESOLVED.** Entities now use deterministic,
    location-independent stable ids; Ada spec/body declarations merge into one
    logical entity. Line movement and rescans no longer change identity (proven by
    tests). Residual: parameter types are source-spelled (no symbol solver), so two
@@ -202,9 +204,11 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
    classpath symbol solver), so cross-references are approximate. Handled honestly
    via the confidence model and the new coverage metric, but callers must not treat
    resolved edges as ground truth.
-3. **Incomplete lineage.** No data-source/sink/store modelling yet; the "data flow"
-   report is component-coupling only.
-4. ✅ **Storage default — RESOLVED.** The CLI defaults to a file-backed index with
+3. **Incomplete lineage coverage.** Java/Spring and Ada vertical slices are
+   implemented with explicit sources, sinks, stores and unresolved gaps. Dynamic
+   SQL, JAX-RS, message queues, and Ada database bindings remain outside the current
+   rule set; see [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md).
+4. **Storage default — RESOLVED.** The CLI defaults to a file-backed index with
    scan records; a failed scan never replaces the last completed snapshot.
 5. **Missing evidence richness.** No parser/rule versioning or file-hash provenance
    attached to findings yet.
@@ -216,25 +220,28 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
    reflection/DI-invoked code remains a false-positive source.
 7. **Unsupported constructs.** Ada scanner is line-based and will miss constructs
    spanning unusual formatting; unsupported languages are detected but not parsed.
-8. **Performance.** Whole-file re-parse each run; entire model held in memory.
-   Acceptable at current scale; revisit for very large repos.
+8. **Performance.** Unchanged parser results are reused, hashing and parsing use
+   bounded worker pools, and graph edge de-duplication is linear. The entire model
+   is still held in memory and every candidate file is hashed on each scan; revisit
+   those costs for very large repositories.
 9. **Security posture (good, to keep):** offline, no admin, no code execution, no
    build-script execution, repo read-only, symlinks not followed by default. No
-   loopback server yet (no UI). No certification claims are made.
+   routable server: the optional explorer is GET-only, database-level read-only and
+   bound to loopback. No certification claims are made.
 
 ---
 
 ## Recommended next steps (smallest-first)
 
-1. ✅ **Analysis-coverage reporting + `ResolutionStatus`** (honest uncertainty). _Done._
-2. ✅ **Stable identifiers + Ada spec/body merge** (resolved risk #1). _Done._
-3. ✅ **Persistent file-backed H2 default + scan versioning + parse reuse** (resolved risk #4). _Done._
-4. ✅ **Java data-lineage vertical slice** (endpoint→…→table, evidence-backed). _Done._
-5. ✅ **Ada data-lineage vertical slice** (console→procedure→transformation→state→output). _Done._
-6. ✅ **Read-only agent tool API** (atlas-tools, `atlas tool`, DB-level read-only). _Done._
-7. ✅ **Deterministic summaries + Repository Orientation Agent** (atlas-agents,
+1. **Analysis-coverage reporting + `ResolutionStatus`** (honest uncertainty). _Done._
+2. **Stable identifiers + Ada spec/body merge** (resolved risk #1). _Done._
+3. **Persistent file-backed H2 default + scan versioning + parse reuse** (resolved risk #4). _Done._
+4. **Java data-lineage vertical slice** (endpoint→…→table, evidence-backed). _Done._
+5. **Ada data-lineage vertical slice** (console→procedure→transformation→state→output). _Done._
+6. **Read-only agent tool API** (atlas-tools, `atlas tool`, DB-level read-only). _Done._
+7. **Deterministic summaries + Repository Orientation Agent** (atlas-agents,
    `atlas orient` / `atlas summarize`). _Done._
-8. ✅ **Data-Lineage Investigator Agent** (`atlas investigate`). _Done — every
+8. **Data-Lineage Investigator Agent** (`atlas investigate`). _Done — every
    numbered addendum milestone (1–10) is now complete._
-9. Next (beyond the addendum plan): config/SQL/build parsers, graph exports,
-   offline search, optional local-AI mode, AgentForge adapter.
+9. Next (beyond the addendum plan): richer dynamic-language and runtime-flow
+   coverage, interactive graph navigation, optional local-AI mode, AgentForge adapter.

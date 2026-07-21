@@ -16,6 +16,8 @@ involved anywhere in lineage construction.
 JAX-RS and message queues are not yet implemented (see
 [Known limitations](#known-limitations)).
 
+![Data-lineage paths in the static report](docs/images/screenshot-report-data-lineage.jpg)
+
 ## Example
 
 ```

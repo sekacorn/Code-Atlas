@@ -29,13 +29,22 @@ public final class CsvReporter {
         return sb.toString();
     }
 
-    private static String csv(String value) {
+    static String csv(String value) {
         if (value == null) {
             return "";
         }
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+        if (!value.isEmpty() && isFormulaPrefix(value.charAt(0))) {
+            value = "'" + value;
+        }
+        if (value.contains(",") || value.contains("\"")
+                || value.contains("\r") || value.contains("\n")) {
             return '"' + value.replace("\"", "\"\"") + '"';
         }
         return value;
+    }
+
+    private static boolean isFormulaPrefix(char first) {
+        return first == '=' || first == '+' || first == '-' || first == '@'
+                || first == '\t' || first == '\r' || first == '\n';
     }
 }

@@ -87,11 +87,12 @@ public final class GraphBuilder {
     private GraphModel call() {
         Map<String, List<String>> adj = new TreeMap<>();
         Set<String> involved = new HashSet<>();
+        Set<EdgeKey> seen = new HashSet<>();
         List<GraphModel.Edge> rawEdges = new ArrayList<>();
         for (Relationship r : sortedRelationships()) {
             if (r.resolved() && CALL_KINDS.contains(r.kind())
                     && isCallable(r.fromId()) && isCallable(r.toId())) {
-                if (rawEdges.stream().noneMatch(e -> e.from().equals(r.fromId()) && e.to().equals(r.toId()))) {
+                if (seen.add(new EdgeKey(r.fromId(), r.toId()))) {
                     rawEdges.add(new GraphModel.Edge(r.fromId(), r.toId(), ""));
                     adj.computeIfAbsent(r.fromId(), k -> new ArrayList<>()).add(r.toId());
                     involved.add(r.fromId());
@@ -106,6 +107,9 @@ public final class GraphBuilder {
                     layers.getOrDefault(id, 0)));
         }
         return finalize("Call graph (resolved calls)", nodes, filterEdges(rawEdges, nodes));
+    }
+
+    private record EdgeKey(String from, String to) {
     }
 
     // ---- dead-code graph ----

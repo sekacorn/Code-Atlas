@@ -52,11 +52,15 @@ public final class DotWriter {
     }
 
     private static String id(String stableId) {
-        return "\"" + stableId.replace("\"", "\\\"") + "\"";
+        return quote(stableId);
     }
 
-    private static String quote(String s) {
-        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    static String quote(String s) {
+        return "\"" + s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n")
+                .replace("\t", "\\t") + "\"";
     }
 
     /** Kept for symmetry with SVG sizing; DOT does its own layout. */

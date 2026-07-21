@@ -78,7 +78,7 @@ public final class LineageCommand implements Callable<Integer> {
                     + " — run 'atlas scan " + repository + "' first.");
             return 4;
         }
-        try (AtlasStore store = AtlasStore.atPath(index)) {
+        try (AtlasStore store = AtlasStore.atPathReadOnly(index)) {
             ScanRecord latest = store.latestCompletedScan().orElse(null);
             if (latest == null) {
                 System.err.println("The index has no completed scan — run 'atlas scan' first.");
