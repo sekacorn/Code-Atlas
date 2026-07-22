@@ -1,6 +1,6 @@
-# Code Atlas — Agent Tool API and Agents
+# Code Atlas - Agent Tool API and Agents
 
-**Status: everything here is implemented in deterministic mode** — the read-only
+**Status: everything here is implemented in deterministic mode** - the read-only
 tool API (with *every* operation now answering), deterministic summaries, the
 Repository Orientation Agent, the Data-Lineage Investigator Agent, and the
 Repository Onboarding Coordinator that orchestrates them. Nothing in the core
@@ -30,8 +30,8 @@ boundary enforces, by construction:
 Every operation returns:
 
 ```json
-{ "operation": "...", "scanId": "scan-…", "supported": true,
-  "truncated": false, "totalMatches": 7, "note": "", "value": … }
+{ "operation": "...", "scanId": "scan-...", "supported": true,
+  "truncated": false, "totalMatches": 7, "note": "", "value": ... }
 ```
 
 Three states are explicit so an agent can never misread them: `supported=false`
@@ -39,7 +39,7 @@ means the platform cannot answer this kind of question yet (with the reason in
 `note`); an empty `value` with `supported=true` means "the answer is nothing";
 `truncated=true` means limits cut the result and `totalMatches` says how much
 exists. **Every operation is implemented today, so nothing returns
-`supported=false`** — the state stays in the contract so that a future capability
+`supported=false`** - the state stays in the contract so that a future capability
 gap can never be mistaken for an empty answer. Where a question is answerable but
 this repository has no such facts (say, no build files), the result is
 supported-but-empty with the reason in `note`. Entities carry stable ids, locations and attributes; edges carry rule id,
@@ -49,12 +49,12 @@ confidence, resolution status, inferred/ambiguous flags and file:line evidence.
 
 | Operation | Answer | Status |
 |---|---|---|
-| `find_entity` | stable id / `"POST /path"` / unique name suffix → one entity (ambiguity lists candidates, never picks) | Implemented |
+| `find_entity` | stable id / `"POST /path"` / unique name suffix -> one entity (ambiguity lists candidates, never picks) | Implemented |
 | `get_entity`, `search_entities` | entity views, filtered and paginated | Implemented |
 | `get_source_evidence` | canonical + Ada spec/body locations, file hash | Implemented |
 | `get_callers`, `get_callees` | call-graph neighbors (evidence-bearing lineage edge preferred per pair) | Implemented |
 | `get_dependencies`, `get_dependents` | all resolved usage edges in/out | Implemented |
-| `get_members` | structural members of a container (package → types, type → methods/fields) | Implemented |
+| `get_members` | structural members of a container (package -> types, type -> methods/fields) | Implemented |
 | `get_data_sources`, `get_data_sinks` | DATA_SOURCE / DATA_SINK entities | Implemented |
 | `get_database_references` | edges touching database tables | Implemented |
 | `trace_data_lineage` | full lineage traversal (direction, depth, filters, gaps) | Implemented |
@@ -63,7 +63,7 @@ confidence, resolution status, inferred/ambiguous flags and file:line evidence.
 | `get_repository_summary` | headline facts for orientation | Implemented |
 | `get_unresolved_references`, `get_diagnostics` | honest gaps and scan-time diagnostics | Implemented |
 | `get_build_membership` | the build module that owns an entity, resolved through the file it lives in (Maven / Gradle / GNAT) | Implemented |
-| `get_configuration_references` | config → code references (CONFIGURES edges) with the config key and location | Implemented |
+| `get_configuration_references` | config -> code references (CONFIGURES edges) with the config key and location | Implemented |
 
 Dead-code and complexity views are computed over the persisted model with the
 default thresholds (complexity 10, dead-code confidence 60); a scan run with
@@ -91,7 +91,7 @@ questions, known limitations, suggested next investigation.
 
 ## Implemented agents (deterministic mode)
 
-### Repository Orientation Agent — `atlas orient`
+### Repository Orientation Agent - `atlas orient`
 
 Answers the eight orientation questions (where to start, main modules, likely
 entry points, most central components, data stores, external systems, what to
@@ -103,7 +103,7 @@ the structure above; handlers and other facts are read from graph edges, never
 from naming alone; candidate scans are capped (100 per kind) and the cap is a
 documented heuristic.
 
-### Deterministic summaries — `atlas summarize <stable-id>`
+### Deterministic summaries - `atlas summarize <stable-id>`
 
 Method/subprogram summaries state parameters, returns, complexity, calls, reads,
 writes (side effects), SPARK contracts and lineage role; component summaries
@@ -111,12 +111,12 @@ state members, dependencies, consumers, touched data stores, peak member
 complexity and dead-code risks. Structural facts are confirmed and cited; the
 responsibility line is always labelled **inferred**.
 
-### Data-Lineage Investigator Agent — `atlas investigate <entity>`
+### Data-Lineage Investigator Agent - `atlas investigate <entity>`
 
 Answers, for one entity: **where did this data originate, what transforms it,
 where is it stored, where does it go and who consumes it, and which parts of the
-path are unresolved** — plus an overview with the numbered confirmed path
-(origin → … → target), each step backed by per-edge evidence and the path
+path are unresolved** - plus an overview with the numbered confirmed path
+(origin -> ... -> target), each step backed by per-edge evidence and the path
 confidence taken from its weakest edge. Origins include input sources read by
 the entity's writers (one evidence-backed hop); transformation steps cite their
 `ATLAS-LINEAGE-*` rule; external consumers and unresolved references appear as
@@ -125,28 +125,28 @@ name suffix.
 
 ```
 atlas orient --repo /path/to/repo [--format json]
-atlas summarize java:method:com.example.CustomerService#createCustomer(CustomerRequest) --repo …
-atlas investigate sql:table:customer --repo …
-atlas investigate ada:variable:Mission_Data.Current_Route --repo …
+atlas summarize java:method:com.example.CustomerService#createCustomer(CustomerRequest) --repo ...
+atlas investigate sql:table:customer --repo ...
+atlas investigate ada:variable:Mission_Data.Current_Route --repo ...
 ```
 
 All are deterministic: identical index content yields byte-identical output.
 
-### Repository Onboarding Coordinator — `atlas onboard <repository>`
+### Repository Onboarding Coordinator - `atlas onboard <repository>`
 
 A guided, twelve-stage workflow (`atlas-onboarding`) that **orchestrates the agents
 above** into one investigation for a developer joining an unfamiliar Java/Ada system.
 The coordinator creates no new facts: it runs the Repository Orientation Agent, the
-deterministic summaries and the tool API, and organizes their results — plus
-evidence-based Java↔Ada boundary discovery, representative lineage sampling, central-
-component ranking, a reading order and grounded expert questions — into an evidence-
+deterministic summaries and the tool API, and organizes their results - plus
+evidence-based Java<->Ada boundary discovery, representative lineage sampling, central-
+component ranking, a reading order and grounded expert questions - into an evidence-
 backed onboarding package (deterministic JSON + self-contained HTML), written outside
 the repository. A per-stage failure never aborts the workflow. No LLM. See
 [ONBOARDING.md](ONBOARDING.md).
 
 ## Runtime modes
 
-In order of delivery: **deterministic** (implemented — graph traversal, rules and
+In order of delivery: **deterministic** (implemented - graph traversal, rules and
 templates over this API, no LLM), then optional **local AI** that receives only
 structured tool results (never the repository), then an optional AgentForge
 adapter. The core product remains fully useful with AI disabled.

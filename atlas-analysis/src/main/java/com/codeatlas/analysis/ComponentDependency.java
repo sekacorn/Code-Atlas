@@ -13,6 +13,10 @@ public record ComponentDependency(String name,
                                   List<String> dependsOn,
                                   Risk risk) {
 
+    public ComponentDependency {
+        dependsOn = List.copyOf(dependsOn);
+    }
+
     public enum Risk {
         LOW, MEDIUM, HIGH
     }

@@ -14,6 +14,10 @@ public record ScanResult(Path root,
                          long totalSizeBytes,
                          long durationMillis) {
 
+    public ScanResult {
+        files = List.copyOf(files);
+    }
+
     /** File counts keyed by language id, sorted for stable reporting. */
     public Map<String, Integer> filesByLanguage() {
         Map<String, Integer> counts = new TreeMap<>();

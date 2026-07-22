@@ -9,6 +9,10 @@ import java.util.List;
  */
 public record SystemInventory(List<Category> categories) {
 
+    public SystemInventory {
+        categories = List.copyOf(categories);
+    }
+
     /**
      * One inventory line.
      *
@@ -17,5 +21,8 @@ public record SystemInventory(List<Category> categories) {
      * @param examples up to a handful of representative names, sorted
      */
     public record Category(String name, int count, List<String> examples) {
+        public Category {
+            examples = List.copyOf(examples);
+        }
     }
 }

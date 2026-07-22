@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- These analyzers intentionally receive and enrich the scan's mutable model. -->
+    <Match>
+        <Or>
+            <Class name="com.codeatlas.analysis.lineage.AdaLineageAnalyzer"/>
+            <Class name="com.codeatlas.analysis.lineage.LineageAnalyzer"/>
+            <Class name="com.codeatlas.graph.GraphBuilder"/>
+        </Or>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Pipeline/report boundaries carry the one in-memory model through read phases. -->
+    <Match>
+        <Or>
+            <Class name="com.codeatlas.core.PipelineResult"/>
+            <Class name="com.codeatlas.reporting.ReportData"/>
+        </Or>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+</FindBugsFilter>

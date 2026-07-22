@@ -30,4 +30,8 @@ public record RepositoryIntake(String repositoryKey,
                                List<String> languages,
                                List<String> buildSystems,
                                int totalFiles) {
+    public RepositoryIntake {
+        languages = List.copyOf(languages);
+        buildSystems = List.copyOf(buildSystems);
+    }
 }

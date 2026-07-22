@@ -2,6 +2,8 @@ package com.codeatlas.cli;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.ScopeType;
 
 /**
  * Root command for the Code Atlas CLI.
@@ -12,12 +14,20 @@ import picocli.CommandLine.Command;
  */
 @Command(name = "atlas",
         mixinStandardHelpOptions = true,
-        version = "Code Atlas 0.2.2",
+        version = "Code Atlas 0.3.0",
         description = "Offline software intelligence and static analysis.",
         subcommands = {ScanCommand.class, LineageCommand.class, ToolCommand.class,
                 OrientCommand.class, SummarizeCommand.class, InvestigateCommand.class,
                 GraphCommand.class, OnboardCommand.class, ServeCommand.class})
 public final class AtlasCli implements Runnable {
+
+    @Option(names = "--hardened", scope = ScopeType.INHERIT,
+            description = "Disable listeners and apply conservative resource limits.")
+    private boolean hardened = configuredHardenedMode();
+
+    boolean hardened() {
+        return hardened;
+    }
 
     @Override
     public void run() {
@@ -32,5 +42,11 @@ public final class AtlasCli implements Runnable {
         }
         int exit = new CommandLine(new AtlasCli()).execute(args);
         System.exit(exit);
+    }
+
+    private static boolean configuredHardenedMode() {
+        return Boolean.getBoolean("codeatlas.hardened")
+                || "true".equalsIgnoreCase(System.getenv("ATLAS_HARDENED"))
+                || "1".equals(System.getenv("ATLAS_HARDENED"));
     }
 }

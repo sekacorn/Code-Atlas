@@ -19,6 +19,15 @@ public record AgentAnswer(String question,
                           List<String> knownLimitations,
                           List<String> suggestedNextInvestigation) {
 
+    public AgentAnswer {
+        confirmedFacts = List.copyOf(confirmedFacts);
+        inferredFindings = List.copyOf(inferredFindings);
+        evidence = List.copyOf(evidence);
+        unresolvedQuestions = List.copyOf(unresolvedQuestions);
+        knownLimitations = List.copyOf(knownLimitations);
+        suggestedNextInvestigation = List.copyOf(suggestedNextInvestigation);
+    }
+
     /** A pointer to the graph evidence behind a statement. */
     public record Citation(String stableId, String location) {
         public String render() {

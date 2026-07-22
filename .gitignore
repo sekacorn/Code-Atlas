@@ -6,6 +6,7 @@ target/
 atlas-report/
 atlas-onboarding-report/
 .atlas-run/
+.cifuzz-corpus/
 
 # Local assistant/tool state
 .claude/

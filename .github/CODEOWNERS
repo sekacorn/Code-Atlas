@@ -1,0 +1,8 @@
+# Route review requests for release and security controls to the maintainer.
+/.github/ @sekacorn
+/scripts/ @sekacorn
+/pom.xml @sekacorn
+/SECURITY.md @sekacorn
+/assurance/ @sekacorn
+/third-party-licenses/ @sekacorn
+/THIRD_PARTY_NOTICES.txt @sekacorn

@@ -40,6 +40,10 @@ public record ScanHealthSummary(String status,
                                 List<String> reasons,
                                 boolean exactFileCounts) {
 
+    public ScanHealthSummary {
+        reasons = List.copyOf(reasons);
+    }
+
     public static final String HEALTHY = "HEALTHY";
     public static final String PARTIAL = "PARTIAL";
     public static final String POOR = "POOR";

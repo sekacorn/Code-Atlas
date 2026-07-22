@@ -10,6 +10,7 @@ import com.codeatlas.tools.AtlasToolApi;
 import com.codeatlas.ui.ExplorerServer;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.ParentCommand;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +29,9 @@ import java.util.concurrent.Callable;
         description = "Open the local read-only explorer (search and navigate the model in a browser).")
 public final class ServeCommand implements Callable<Integer> {
 
+    @ParentCommand
+    private AtlasCli parent;
+
     @Option(names = {"--repo"}, description = "Repository whose index to explore (default: current directory).")
     private Path repository = Path.of(".");
 
@@ -42,14 +46,17 @@ public final class ServeCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
+        if (parent != null && parent.hardened()) {
+            System.err.println("The local explorer is disabled in hardened mode. Use the generated HTML report.");
+            return 4;
+        }
         Path index = indexPath != null ? indexPath : IndexLocations.defaultIndexFor(repository);
-        if (indexPath == null && !Files.exists(index.getParent() != null ? index.getParent() : index)) {
+        if (indexPath == null && !IndexLocations.indexDirectoryExists(index)) {
             System.err.println("No index found for " + repository.toAbsolutePath()
                     + " — run 'atlas scan " + repository + "' first.");
             return 4;
         }
-        String name = repository.toAbsolutePath().getFileName() != null
-                ? repository.toAbsolutePath().getFileName().toString() : "repository";
+        String name = IndexLocations.repositoryDisplayName(repository);
 
         try (AtlasToolApi api = AtlasToolApi.open(index)) {
             ExplorerServer.GraphRenderer graphs = noGraphs

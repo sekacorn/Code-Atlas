@@ -116,6 +116,7 @@ public final class LineageService {
         }
 
         if (!extended && pathEdges.size() > 0 && paths.size() < MAX_PATHS) {
+            // A path is only as trustworthy as its weakest evidence-bearing edge.
             double min = pathEdges.stream().mapToDouble(LineageResult.Edge::confidence).min().orElse(1.0);
             paths.add(new LineageResult.Path(List.copyOf(pathNodes), List.copyOf(pathEdges), min));
             terminalGap(model, pathNodes.peekLast(), upstream, gaps);

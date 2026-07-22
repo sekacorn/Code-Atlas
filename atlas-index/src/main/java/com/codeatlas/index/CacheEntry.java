@@ -13,4 +13,9 @@ import java.util.List;
 public record CacheEntry(CachedFileMeta meta,
                          List<Entity> entities,
                          List<Relationship> relationships) {
+
+    public CacheEntry {
+        entities = List.copyOf(entities);
+        relationships = List.copyOf(relationships);
+    }
 }

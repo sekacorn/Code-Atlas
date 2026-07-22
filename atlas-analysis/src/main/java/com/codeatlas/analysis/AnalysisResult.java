@@ -14,6 +14,11 @@ public record AnalysisResult(RepositoryMetrics metrics,
                              DependencyAnalysis dependencies,
                              LineageSummary lineage) {
 
+    public AnalysisResult {
+        complexityHotspots = List.copyOf(complexityHotspots);
+        deadCode = List.copyOf(deadCode);
+    }
+
     /** Percentage of candidate entities flagged as probable dead code (headline stat). */
     public int deadCodePercent() {
         int denom = metrics.countOf(com.codeatlas.model.EntityKind.METHOD)

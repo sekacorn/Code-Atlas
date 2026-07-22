@@ -15,6 +15,14 @@ public record LineageSummary(List<EndpointView> endpoints,
                              List<EndpointTrace> sourceTraces,
                              Coverage coverage) {
 
+    public LineageSummary {
+        endpoints = List.copyOf(endpoints);
+        stores = List.copyOf(stores);
+        sources = List.copyOf(sources);
+        traces = List.copyOf(traces);
+        sourceTraces = List.copyOf(sourceTraces);
+    }
+
     /** A detected HTTP endpoint. */
     public record EndpointView(String stableId, String httpMethod, String path, String handler,
                                boolean pathUnresolved, boolean validated) {
@@ -33,6 +41,9 @@ public record LineageSummary(List<EndpointView> endpoints,
     /** One representative downstream trace from an endpoint or input source. */
     public record EndpointTrace(String endpointId, List<String> steps, boolean reachesStore,
                                 int gapCount, double minConfidence) {
+        public EndpointTrace {
+            steps = List.copyOf(steps);
+        }
     }
 
     /** Conservative lineage coverage counters. */

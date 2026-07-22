@@ -16,4 +16,7 @@ public record OnboardingRisk(RiskCategory category,
                              String title,
                              String description,
                              List<EvidenceRef> evidence) {
+    public OnboardingRisk {
+        evidence = List.copyOf(evidence);
+    }
 }

@@ -437,6 +437,7 @@ public final class AtlasToolApi implements AutoCloseable {
         Set<String> seen = new HashSet<>();
         seen.add(stableId);
         direct.forEach(n -> seen.add(n.entity().stableId()));
+        // Seeding both layers makes the first expansion discover only indirect impact.
         Deque<String> frontier = new ArrayDeque<>(seen);
         Set<String> indirectIds = new LinkedHashSet<>();
         int depth = 0;

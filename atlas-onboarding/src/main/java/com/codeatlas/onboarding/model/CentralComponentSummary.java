@@ -45,4 +45,17 @@ public record CentralComponentSummary(String stableId,
                                       String scoreBasis,
                                       List<EvidenceRef> evidence,
                                       List<String> limitations) {
+    public CentralComponentSummary {
+        inputs = List.copyOf(inputs);
+        outputs = List.copyOf(outputs);
+        callers = List.copyOf(callers);
+        callees = List.copyOf(callees);
+        dependencies = List.copyOf(dependencies);
+        dependents = List.copyOf(dependents);
+        dataSources = List.copyOf(dataSources);
+        dataSinks = List.copyOf(dataSinks);
+        sideEffects = List.copyOf(sideEffects);
+        evidence = List.copyOf(evidence);
+        limitations = List.copyOf(limitations);
+    }
 }

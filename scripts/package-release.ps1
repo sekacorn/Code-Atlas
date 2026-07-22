@@ -1,7 +1,8 @@
 param(
     [string]$Version = "",
     [string]$OutputDir = "dist",
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$AllowDirty
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,7 +10,16 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $PomPath = Join-Path $RepoRoot "pom.xml"
 $JarPath = Join-Path $RepoRoot "atlas-cli\target\atlas.jar"
-$DistPath = Join-Path $RepoRoot $OutputDir
+$SbomPath = Join-Path $RepoRoot "target\bom.json"
+$DistPath = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $OutputDir))
+$Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+
+function Invoke-Checked([string]$Program, [string[]]$Arguments) {
+    & $Program @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Program failed with exit code $LASTEXITCODE"
+    }
+}
 
 function Get-ProjectVersion {
     [xml]$pom = Get-Content -Path $PomPath
@@ -20,27 +30,51 @@ function Get-ProjectVersion {
     return ($raw -replace "-SNAPSHOT$", "")
 }
 
-function Write-Checksum($Path) {
+function Get-GitValue([string[]]$Arguments) {
+    $value = & git -C $RepoRoot @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "git failed while collecting release provenance"
+    }
+    return ($value | Out-String).Trim()
+}
+
+function Get-NativeFirstLine([string]$Program, [string[]]$Arguments) {
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $output = & $Program @Arguments 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "$Program failed while collecting build metadata"
+        }
+        return ($output | Select-Object -First 1).ToString()
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+}
+
+function Write-Checksum([string]$Path) {
     $hash = Get-FileHash -Path $Path -Algorithm SHA256
     $line = "$($hash.Hash.ToLowerInvariant())  $(Split-Path -Leaf $Path)"
-    # Write a LF line ending, not the CRLF that Set-Content emits on Windows: the sha256
-    # files are verified on Linux with `sha256sum -c`, which treats a trailing CR as part
-    # of the filename and then cannot find the archive. WriteAllText writes exactly these
-    # bytes with no platform translation.
-    [System.IO.File]::WriteAllText("$Path.sha256", "$line`n", (New-Object System.Text.ASCIIEncoding))
+    [System.IO.File]::WriteAllText("$Path.sha256", "$line`n", [System.Text.ASCIIEncoding]::new())
 }
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = Get-ProjectVersion
 }
 
+$SourceCommit = Get-GitValue @("rev-parse", "HEAD")
+$SourceTimestamp = Get-GitValue @("show", "-s", "--format=%cI", "HEAD")
+$Dirty = -not [string]::IsNullOrWhiteSpace((Get-GitValue @("status", "--porcelain")))
+if ($Dirty -and -not $AllowDirty) {
+    throw "Release packaging requires a clean worktree. Commit the intended release or use -AllowDirty for local testing."
+}
+$OutputTimestamp = [DateTimeOffset]::Parse($SourceTimestamp).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+
 if (-not $SkipBuild) {
     Push-Location $RepoRoot
     try {
-        & mvn -q clean package
-        if ($LASTEXITCODE -ne 0) {
-            throw "Maven build failed with exit code $LASTEXITCODE"
-        }
+        Invoke-Checked "mvn" @("-B", "-ntp", "clean", "verify",
+                "-Dproject.build.outputTimestamp=$OutputTimestamp")
     } finally {
         Pop-Location
     }
@@ -49,9 +83,16 @@ if (-not $SkipBuild) {
 if (-not (Test-Path $JarPath)) {
     throw "Runnable jar not found: $JarPath"
 }
+if (-not (Test-Path $SbomPath)) {
+    throw "CycloneDX SBOM not found: $SbomPath"
+}
 
-Remove-Item -Path $DistPath -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $DistPath -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $DistPath | Out-Null
+
+$ReleaseSbom = Join-Path $DistPath "code-atlas-$Version.cdx.json"
+Copy-Item -LiteralPath $SbomPath -Destination $ReleaseSbom
+Write-Checksum $ReleaseSbom
 
 $PackageRootName = "code-atlas-$Version"
 $Targets = @(
@@ -61,23 +102,30 @@ $Targets = @(
     @{ Name = "windows10"; Type = "zip" }
 )
 
+$JavaVersion = Get-NativeFirstLine "java" @("-version")
+$MavenVersion = Get-NativeFirstLine "mvn" @("-version")
+
 foreach ($target in $Targets) {
     $StageRoot = Join-Path $DistPath "stage-$($target.Name)"
     $PackageRoot = Join-Path $StageRoot $PackageRootName
     $PackagedJarDir = Join-Path $PackageRoot "atlas-cli\target"
-    New-Item -ItemType Directory -Force -Path $PackageRoot | Out-Null
     New-Item -ItemType Directory -Force -Path $PackagedJarDir | Out-Null
 
-    Copy-Item -Path $JarPath -Destination (Join-Path $PackageRoot "atlas.jar")
-    Copy-Item -Path $JarPath -Destination (Join-Path $PackagedJarDir "atlas.jar")
-    Copy-Item -Path (Join-Path $RepoRoot "docs\RELEASE.md") -Destination $PackageRoot
-    Copy-Item -Path (Join-Path $RepoRoot "LICENSE") -Destination $PackageRoot
-    Copy-Item -Path (Join-Path $RepoRoot "atlas.sh") -Destination $PackageRoot
-    Copy-Item -Path (Join-Path $RepoRoot "atlas.ps1") -Destination $PackageRoot
+    Copy-Item -LiteralPath $JarPath -Destination (Join-Path $PackageRoot "atlas.jar")
+    Copy-Item -LiteralPath $JarPath -Destination (Join-Path $PackagedJarDir "atlas.jar")
+    Copy-Item -LiteralPath $ReleaseSbom -Destination (Join-Path $PackageRoot "bom.cdx.json")
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "docs\RELEASE.md") -Destination $PackageRoot
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "LICENSE") -Destination $PackageRoot
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "SECURITY.md") -Destination $PackageRoot
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "THIRD_PARTY_NOTICES.txt") -Destination $PackageRoot
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "third-party-licenses") -Destination $PackageRoot -Recurse
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "atlas.sh") -Destination $PackageRoot
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "atlas.ps1") -Destination $PackageRoot
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "assurance") -Destination $PackageRoot -Recurse
 
     $ReleaseNotes = Join-Path $RepoRoot "docs\RELEASE_NOTES_$Version.md"
     if (Test-Path $ReleaseNotes) {
-        Copy-Item -Path $ReleaseNotes -Destination $PackageRoot
+        Copy-Item -LiteralPath $ReleaseNotes -Destination $PackageRoot
     }
 
     $ImageSource = Join-Path $RepoRoot "docs\images"
@@ -88,9 +136,6 @@ foreach ($target in $Targets) {
     New-Item -ItemType Directory -Force -Path $ImageDestination | Out-Null
     Copy-Item -Path (Join-Path $ImageSource "*") -Destination $ImageDestination
 
-    # The whole doc set ships with the archive: these environments are offline, so a
-    # reader cannot follow a link back to the repository to find the limitations,
-    # the evidence model or the onboarding guide.
     $Docs = @("README.md", "KNOWN_LIMITATIONS.md", "CURRENT_STATE.md", "EVIDENCE_MODEL.md",
               "STABLE_IDENTIFIERS.md", "DATA_LINEAGE.md", "ONBOARDING.md", "AGENTS.md",
               "PERSISTENCE.md", "INCREMENTAL_ANALYSIS.md")
@@ -99,8 +144,23 @@ foreach ($target in $Targets) {
         if (-not (Test-Path $source)) {
             throw "Release doc missing: $doc"
         }
-        Copy-Item -Path $source -Destination $PackageRoot
+        Copy-Item -LiteralPath $source -Destination $PackageRoot
     }
+
+    $BuildInfo = [ordered]@{
+        schemaVersion = 1
+        product = "Code Atlas"
+        version = $Version
+        sourceRepository = "https://github.com/sekacorn/Code-Atlas"
+        sourceCommit = $SourceCommit
+        sourceCommitTimestamp = $SourceTimestamp
+        sourceDirty = $Dirty
+        java = $JavaVersion
+        maven = $MavenVersion
+        sbom = "bom.cdx.json"
+    }
+    [System.IO.File]::WriteAllText((Join-Path $PackageRoot "BUILD-INFO.json"),
+            ($BuildInfo | ConvertTo-Json -Depth 5) + "`n", $Utf8NoBom)
 
     if ($target.Type -eq "zip") {
         $Archive = Join-Path $DistPath "code-atlas-$Version-$($target.Name).zip"
@@ -109,14 +169,20 @@ foreach ($target in $Targets) {
         $Archive = Join-Path $DistPath "code-atlas-$Version-$($target.Name).tar.gz"
         Push-Location $StageRoot
         try {
-            tar -czf $Archive $PackageRootName
+            Invoke-Checked "tar" @("-czf", $Archive, $PackageRootName)
         } finally {
             Pop-Location
         }
     }
-
     Write-Checksum $Archive
 }
 
-Remove-Item -Path (Join-Path $DistPath "stage-*") -Recurse -Force
+Get-ChildItem -LiteralPath $DistPath -Directory -Filter "stage-*" |
+    Remove-Item -Recurse -Force
+
+& (Join-Path $PSScriptRoot "generate-release-manifest.ps1") `
+        -Version $Version -DistPath $DistPath -SourceCommit $SourceCommit `
+        -SourceTimestamp $SourceTimestamp -SourceDirty:$Dirty
+Write-Checksum (Join-Path $DistPath "release-manifest.json")
+
 Write-Host "Release artifacts written to $DistPath"

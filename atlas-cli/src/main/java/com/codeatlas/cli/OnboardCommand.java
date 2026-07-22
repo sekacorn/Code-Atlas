@@ -40,7 +40,7 @@ import java.util.concurrent.Callable;
         description = "Guided, deterministic onboarding for an unfamiliar Java/Ada repository.")
 public final class OnboardCommand implements Callable<Integer> {
 
-    private static final String TOOL_VERSION = "Code Atlas 0.2.2";
+    private static final String TOOL_VERSION = "Code Atlas 0.3.0";
 
     @Parameters(index = "0", description = "Path to the repository root to onboard.")
     private Path repository;
@@ -114,8 +114,8 @@ public final class OnboardCommand implements Callable<Integer> {
 
         try (AtlasToolApi api = AtlasToolApi.open(index)) {
             OnboardingOptions options = new OnboardingOptions(
-                    repository.toAbsolutePath().getFileName().toString(),
-                    repository.toAbsolutePath().getFileName().toString(),
+                    IndexLocations.repositoryDisplayName(repository),
+                    IndexLocations.repositoryDisplayName(repository),
                     IndexLocations.repositoryKey(repository), branchOf(repository), "file-backed",
                     TOOL_VERSION, maxComponents, maxPaths, includeInferred,
                     Math.max(0, Math.min(100, minConfidence)) / 100.0);

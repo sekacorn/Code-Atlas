@@ -22,6 +22,11 @@ public record ExpertQuestion(String role,
                              List<EvidenceRef> evidence,
                              String basis) {
 
+    public ExpertQuestion {
+        componentIds = List.copyOf(componentIds);
+        evidence = List.copyOf(evidence);
+    }
+
     public static final String BASIS_CONFIRMED = "confirmed";
     public static final String BASIS_UNRESOLVED = "unresolved";
 }

@@ -1,4 +1,4 @@
-# Code Atlas — Known Limitations
+# Code Atlas - Known Limitations
 
 Code Atlas reports honestly. This document lists what the current implementation
 does **not** do, or does only approximately, so results are read with the right
@@ -12,7 +12,7 @@ expectations. It is updated as limitations are addressed.
 - Ambiguous references (too many candidates) are intentionally left **unresolved**
   rather than guessed. The scan's coverage numbers reflect this.
 - External / library references (e.g. `System.out.println`, Ada `with Interfaces`)
-  are correctly reported as **unresolved** — they are not part of the scanned repo.
+  are correctly reported as **unresolved** - they are not part of the scanned repo.
 
 ## Identifiers
 
@@ -56,11 +56,11 @@ expectations. It is updated as limitations are addressed.
   declared table and the table a JPA entity maps to are the same entity, so a
   mapping is confirmed against a real schema; a table with no `declaredIn`
   attribute was inferred from JPA naming and no parsed DDL declares it. Limits:
-  this is a statement scanner, not a SQL grammar — a view is recorded as an object
-  but its query is **not** analysed (no view→table lineage), and stored procedures,
+  this is a statement scanner, not a SQL grammar - a view is recorded as an object
+  but its query is **not** analysed (no view->table lineage), and stored procedures,
   triggers, dynamic SQL, vendor extensions and partitioning are not modeled.
 - **Literal SQL in code** (JDBC and `@Query`) is read for the tables it touches, so
-  code→table edges no longer come only from JPA mappings. Only the derived table
+  code->table edges no longer come only from JPA mappings. Only the derived table
   name and read/write direction are stored, never the SQL text. Limits: SQL built at
   runtime is only partly visible (its literal fragments name real tables, but the
   edge is `INFERRED` at 0.60); SQL built entirely from variables is invisible; a
@@ -74,8 +74,8 @@ expectations. It is updated as limitations are addressed.
   not certainty. Reflection, DI, external invocation, and dynamic configuration are
   known blind spots and should be assumed possible.
 - **Data lineage covers two vertical slices: Java/Spring and Ada.** Java:
-  endpoint → … → table; Ada: console input → procedure → transformation → package
-  state → output, each with per-edge evidence (see [DATA_LINEAGE.md](DATA_LINEAGE.md)).
+  endpoint -> ... -> table; Ada: console input -> procedure -> transformation -> package
+  state -> output, each with per-edge evidence (see [DATA_LINEAGE.md](DATA_LINEAGE.md)).
   Java limits: JAX-RS unsupported; receiver resolution does not follow local
   variables or chained calls; literal SQL is extracted but runtime-assembled SQL is
   only partly visible (labelled INFERRED);
@@ -105,13 +105,13 @@ expectations. It is updated as limitations are addressed.
 Exported graphs (`atlas graph`, and the SVG the explorer embeds) use an Okabe-Ito
 palette placed by search rather than by eye: `PaletteTest` simulates protanopia,
 deuteranopia and tritanopia and fails the build if two categories that can share a
-graph become confusable. It is the only palette, not an opt-in mode — an exported
+graph become confusable. It is the only palette, not an opt-in mode - an exported
 SVG outlives the session that made it and reaches readers nobody surveyed first.
 
 What is **guaranteed**:
 
-- Where colour carries the meaning — dead vs live, the risk ramp — categories stay
-  separable under all three dichromacies (worst-case ΔE 48 and 15 respectively), and
+- Where colour carries the meaning - dead vs live, the risk ramp - categories stay
+  separable under all three dichromacies (worst-case deltaE 48 and 15 respectively), and
   every opposed pair *also* differs in border treatment (dead is dashed, high risk is
   heavy). So those graphs survive greyscale printing and monochromacy, not just CVD.
 - Risk is ordinal, so it reads as ordered by lightness: high risk is decisively the
@@ -121,10 +121,10 @@ What is **guaranteed**:
 What is **not**:
 
 - The architecture graph's ten layer roles are held only to the *common* dichromacies
-  (protanopia, deuteranopia; worst-case ΔE 12.7). Ten categories cannot be made
-  mutually separable under tritanopia as well — each dichromacy flattens colour space
+  (protanopia, deuteranopia; worst-case deltaE 12.7). Ten categories cannot be made
+  mutually separable under tritanopia as well - each dichromacy flattens colour space
   to roughly two dimensions, and that many points will not stay apart in all of them
-  at once (`SERVICE` and `TABLE` collapse to ΔE 0.5 under tritanopia however they are
+  at once (`SERVICE` and `TABLE` collapse to deltaE 0.5 under tritanopia however they are
   placed). This is survivable because every architecture node is **labelled with its
   role**: hue groups the nodes, the label states what they are, and no information
   lives in the colour alone. `PaletteTest` pins this concession so it cannot quietly
@@ -158,7 +158,7 @@ What is **not**:
   origin chains may be missed and are reported as absent, not guessed.
 - Orientation heuristics are bounded: candidate scans cap at 100 entities per
   kind, "responsibility" lines are structural inferences, and reading-order
-  advice is heuristic — all labelled as such in the output.
+  advice is heuristic - all labelled as such in the output.
 - Graph **SVG** export uses a simple deterministic layered layout, capped at 200
   nodes; for large or dense graphs, export **DOT** and render with Graphviz for
   better routing. There is no interactive graph viewer (CLI + static HTML/SVG by
@@ -166,16 +166,16 @@ What is **not**:
 - The explorer (`atlas serve`) is a **read-only** view: it searches the model and
   navigates entities, lineage and build membership, but it cannot edit, re-scan or
   change anything, and it renders only what the persisted index already holds.
-- Its CSS and JavaScript are **inline and self-contained** — nothing is fetched from
+- Its CSS and JavaScript are **inline and self-contained** - nothing is fetched from
   any host, so it runs fully offline. The script is **progressive enhancement only**
   (theme switching, live list filtering, a "/" shortcut); search, navigation and the
   theme all work with scripting disabled. It is authorised by a per-response CSP
   nonce rather than `unsafe-inline`.
-- Graphs are still the **static SVG** the CLI exports — there is no pan/zoom or
+- Graphs are still the **static SVG** the CLI exports - there is no pan/zoom or
   interactive graph viewer.
 - The explorer is **single-user and unauthenticated by design**: it binds to loopback
   only and serves a read-only view, so there is no boundary to authenticate across.
-  It is a local tool and is **not** hardened for network exposure — do not put it
+  It is a local tool and is **not** hardened for network exposure - do not put it
   behind a proxy or bind it to a routable interface.
 
 ## Guided onboarding (`atlas onboard`)
@@ -183,12 +183,12 @@ What is **not**:
 - **It is a guided view over existing analysis, not new analysis.** The onboarding
   coordinator organizes results from the read-only tool API and the deterministic
   agents; it never creates new facts, and it inherits every limitation above.
-- **Java↔Ada boundaries are graded by evidence and never invented from names.** A
+- **Java<->Ada boundaries are graded by evidence and never invented from names.** A
   boundary requires a real crossing signal (a `native`/JNI method, a process/message/
   network API reference, an actual unresolved cross-language reference, or a shared
   data-store identity). A native method's Ada counterpart is reached by a conservative
   normalized-name match and is always reported **INFERRED** with its missing
-  information stated — Code Atlas does not resolve symbols across languages. Process/
+  information stated - Code Atlas does not resolve symbols across languages. Process/
   message/network boundaries name the far side only when evidence supports it.
 - **Entry points** cover Java `main(String[])` and REST endpoints, and Ada top-level
   parameterless library procedures (the GNAT main shape, inferred) and tasks.

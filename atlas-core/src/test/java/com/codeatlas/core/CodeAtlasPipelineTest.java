@@ -1,6 +1,8 @@
 package com.codeatlas.core;
 
 import com.codeatlas.model.EntityKind;
+import com.codeatlas.scanner.FileCategory;
+import com.codeatlas.scanner.ScannedFile;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -9,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CodeAtlasPipelineTest {
@@ -62,5 +65,18 @@ class CodeAtlasPipelineTest {
         // Model has a PROJECT root and FILE entities.
         assertEquals(1, result.model().entitiesOfKind(EntityKind.PROJECT).size());
         assertEquals(2, result.model().entitiesOfKind(EntityKind.FILE).size());
+    }
+
+    @Test
+    void rejectsContentThatChangesAfterHashing(@TempDir Path repo) throws IOException {
+        Path file = repo.resolve("Changing.java");
+        Files.writeString(file, "class Changing {}");
+        ScannedFile scanned = new ScannedFile("Changing.java", file, "java",
+                FileCategory.SOURCE, Files.size(file), "0".repeat(64));
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> CodeAtlasPipeline.withDiscoveredParsers().readContent(scanned));
+
+        assertTrue(error.getMessage().contains("changed"), error.getMessage());
     }
 }

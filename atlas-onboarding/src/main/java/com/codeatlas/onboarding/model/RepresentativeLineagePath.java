@@ -30,4 +30,12 @@ public record RepresentativeLineagePath(String title,
                                         List<String> unresolvedGaps,
                                         List<String> blindSpots,
                                         boolean partial) {
+    public RepresentativeLineagePath {
+        orderedNodes = List.copyOf(orderedNodes);
+        orderedEdges = List.copyOf(orderedEdges);
+        relationshipTypes = List.copyOf(relationshipTypes);
+        evidence = List.copyOf(evidence);
+        unresolvedGaps = List.copyOf(unresolvedGaps);
+        blindSpots = List.copyOf(blindSpots);
+    }
 }

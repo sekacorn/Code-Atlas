@@ -21,4 +21,12 @@ public record ArchitectureOrientation(List<String> majorModules,
                                       List<String> dataAccess,
                                       List<String> externalFacing,
                                       List<String> notes) {
+    public ArchitectureOrientation {
+        majorModules = List.copyOf(majorModules);
+        inferredLayers = List.copyOf(inferredLayers);
+        mostConnected = List.copyOf(mostConnected);
+        dataAccess = List.copyOf(dataAccess);
+        externalFacing = List.copyOf(externalFacing);
+        notes = List.copyOf(notes);
+    }
 }

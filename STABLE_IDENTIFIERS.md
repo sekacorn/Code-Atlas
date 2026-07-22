@@ -1,7 +1,7 @@
-# Code Atlas — Stable Identifiers
+# Code Atlas - Stable Identifiers
 
 Every entity in the model has a **deterministic, location-independent** stable
-identifier. It is the authoritative handle for external references — report links,
+identifier. It is the authoritative handle for external references - report links,
 saved searches, suppressions, cross-scan comparison, and every agent tool call
 (`atlas tool <op> --id <stable-id>`; see [AGENTS.md](AGENTS.md)).
 `Entity.id()` **is** the stable id; `Entity.stableId()` returns the same value.
@@ -10,7 +10,7 @@ saved searches, suppressions, cross-scan comparison, and every agent tool call
 
 Identifiers must survive edits. An id that embeds a line number changes whenever
 code moves, breaking incremental updates, suppressions and comparisons. The stable
-id depends only on language, kind and qualified name — never on line, column,
+id depends only on language, kind and qualified name - never on line, column,
 timestamp, database key or absolute path. Source locations are retained as
 **evidence**, not identity.
 
@@ -46,11 +46,11 @@ java:field:com.example.CustomerService#repository
 ### Ada
 ```
 ada:package:Navigation
-ada:package:Navigation.Sensors                        (child package — distinct)
+ada:package:Navigation.Sensors                        (child package - distinct)
 ada:type:Navigation.Route_Record
 ada:procedure:Navigation.Reset                        (no parameters)
 ada:function:Navigation.Find_Path(Integer)            (one parameter)
-ada:function:Navigation.Find_Path(Integer,Integer)    (overload — distinct)
+ada:function:Navigation.Find_Path(Integer,Integer)    (overload - distinct)
 ```
 
 ### Lineage entities
@@ -59,11 +59,11 @@ java:endpoint:POST:/api/customers/{id}/orders          (verb + normalized path)
 java:endpoint:GET:{unresolved:Paths.BASE}               (non-literal path, kept unresolved)
 sql:table:customer                                      (database table)
 ada:variable:Mission_Data.Current_Route                 (package state)
-ada:source:console_input                                (data source — Ada.Text_IO input)
-ada:sink:console_output                                 (data sink — Ada.Text_IO output)
+ada:source:console_input                                (data source - Ada.Text_IO input)
+ada:sink:console_output                                 (data sink - Ada.Text_IO output)
 ```
-DTOs deliberately remain ordinary `java:type:…` entities with a `role` attribute
-(`dto-request` / `dto-response`) — no duplicate logical entities are created.
+DTOs deliberately remain ordinary `java:type:...` entities with a `role` attribute
+(`dto-request` / `dto-response`) - no duplicate logical entities are created.
 
 ## Normalization
 
@@ -72,7 +72,7 @@ DTOs deliberately remain ordinary `java:type:…` entities with a `role` attribu
   fully-qualified names is out of scope (no classpath symbol solver), so the
   profile is deterministic but reflects the source spelling.
 - **Ada subprogram parameters** are normalized to a comma-separated type profile:
-  defaults (`:= …`) and parameter modes (`in`, `out`, `aliased`, `constant`) are
+  defaults (`:= ...`) and parameter modes (`in`, `out`, `aliased`, `constant`) are
   stripped, whitespace collapsed, and multi-name declarations (`A, B : Integer`)
   expanded per name. A parameterless subprogram has no parentheses.
 - Qualified names are case-sensitive as written. (Ada is case-insensitive as a
@@ -91,7 +91,7 @@ An Ada package (or subprogram, or type) declared in a `.ads` specification and
 implemented in a `.adb` body produces the **same** stable id, so the two collapse
 into one logical entity. The merge:
 
-- OR-s exposure (visible in the spec → externally exposed);
+- OR-s exposure (visible in the spec -> externally exposed);
 - takes the maximum of complexity and lines of code;
 - keeps SPARK contracts and descriptive attributes from whichever unit supplied them;
 - records **both** evidences via attributes:
@@ -108,7 +108,7 @@ parent.
 Two **distinct** declarations that resolve to the same id (e.g. a duplicate
 qualified name across files, or two bodies the parser could not tell apart) are
 **never silently overwritten**. The first is kept and a
-`STABLE_ID_COLLISION` diagnostic is recorded — including both source locations —
+`STABLE_ID_COLLISION` diagnostic is recorded - including both source locations -
 and surfaced in the JSON report (`diagnostics`) and the CLI summary. Legitimate
 merges (spec/body, package aggregation, idempotent re-adds) are not collisions.
 
@@ -116,12 +116,12 @@ Migration/conflict rules at a glance:
 
 | Case | Behavior |
 |---|---|
-| Java nested class | qualified name includes the outer type → distinct id |
+| Java nested class | qualified name includes the outer type -> distinct id |
 | Java overloaded methods | distinguished by parameter profile |
 | Java constructors | `constructor` kind token + parameter profile |
 | Java anonymous classes | not modeled as separate entities |
 | Ada overloaded subprograms | distinguished by normalized parameter profile |
-| Ada child packages | dotted qualified name → distinct id |
+| Ada child packages | dotted qualified name -> distinct id |
 | Ada renames | modeled as a `RENAMES` relationship, not a new identity |
 | Duplicate qualified names | collision diagnostic; first kept, both evidences retained |
 | Invalid/partial source | parsed best-effort; unparseable declarations are skipped |

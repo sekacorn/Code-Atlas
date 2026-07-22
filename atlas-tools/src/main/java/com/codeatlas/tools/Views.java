@@ -24,6 +24,10 @@ public final class Views {
     public record EntityView(String stableId, String kind, String name, String qualifiedName,
                              String language, String location, Map<String, String> attributes) {
 
+        public EntityView {
+            attributes = java.util.Collections.unmodifiableMap(new TreeMap<>(attributes));
+        }
+
         static EntityView of(Entity e) {
             return new EntityView(e.id(), e.kind().name(), e.name(), e.qualifiedName(), e.language(),
                     e.location().map(SourceLocation::toString).orElse(""),
@@ -67,6 +71,13 @@ public final class Views {
                              List<String> downstreamLineage,
                              List<String> unresolvedRisks,
                              String limitations) {
+        public ImpactView {
+            directDependents = List.copyOf(directDependents);
+            indirectDependents = List.copyOf(indirectDependents);
+            databaseImpact = List.copyOf(databaseImpact);
+            downstreamLineage = List.copyOf(downstreamLineage);
+            unresolvedRisks = List.copyOf(unresolvedRisks);
+        }
     }
 
     /** Resolved / unresolved / ambiguous cross-reference counts (structural
@@ -95,5 +106,13 @@ public final class Views {
                                         int complexityHotspots,
                                         int unresolvedReferences,
                                         int diagnostics) {
+        public RepositorySummaryView {
+            filesByLanguage = java.util.Collections.unmodifiableMap(new TreeMap<>(filesByLanguage));
+            entityCounts = java.util.Collections.unmodifiableMap(new TreeMap<>(entityCounts));
+            endpoints = List.copyOf(endpoints);
+            dataStores = List.copyOf(dataStores);
+            dataSources = List.copyOf(dataSources);
+            dataSinks = List.copyOf(dataSinks);
+        }
     }
 }

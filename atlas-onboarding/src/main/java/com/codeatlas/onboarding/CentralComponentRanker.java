@@ -102,6 +102,7 @@ final class CentralComponentRanker {
         int unresolved = (int) memberIds.stream().filter(unresolvedFrom::contains).count()
                 + (unresolvedFrom.contains(c.stableId()) ? 1 : 0);
 
+        // These weights rank reading value, not defect severity; caps limit outliers.
         int score = fanIn * 5 + fanOut * 2
                 + (onLineage ? 8 : 0)
                 + (entryProximate ? 10 : 0)

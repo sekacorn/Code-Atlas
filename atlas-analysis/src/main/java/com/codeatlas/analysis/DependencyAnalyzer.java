@@ -58,11 +58,12 @@ public final class DependencyAnalyzer {
         }
 
         List<ComponentDependency> components = new ArrayList<>();
-        for (String pkg : deps.keySet()) {
-            int d = deps.get(pkg).size();
+        for (var entry : deps.entrySet()) {
+            String pkg = entry.getKey();
+            int d = entry.getValue().size();
             int in = dependents.getOrDefault(pkg, Set.of()).size();
             components.add(new ComponentDependency(pkg, d, in,
-                    List.copyOf(deps.get(pkg)), ComponentDependency.riskOf(d, in)));
+                    List.copyOf(entry.getValue()), ComponentDependency.riskOf(d, in)));
         }
         components.sort(Comparator.comparingInt((ComponentDependency c) -> c.dependencies() + c.dependents())
                 .reversed().thenComparing(ComponentDependency::name));
@@ -127,6 +128,7 @@ public final class DependencyAnalyzer {
                 }
             }
             cycle.add(node);
+            // Canonicalize by member set so rotations of one cycle are reported once.
             String key = new java.util.TreeSet<>(cycle).toString();
             if (cycle.size() > 1 && reported.add(key)) {
                 cycles.add(cycle);

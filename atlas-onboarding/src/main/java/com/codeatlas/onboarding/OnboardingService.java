@@ -201,6 +201,7 @@ public final class OnboardingService {
                     p.evidence, p.warnings, millis(t0)));
             return p.value;
         } catch (RuntimeException e) {
+            // Preserve report shape so later independent stages can still run.
             stages.add(new OnboardingStageResult(name, Completeness.FAILED, inputs,
                     "stage failed: " + e.getClass().getSimpleName(),
                     List.of(), List.of("error: " + String.valueOf(e.getMessage())), millis(t0)));

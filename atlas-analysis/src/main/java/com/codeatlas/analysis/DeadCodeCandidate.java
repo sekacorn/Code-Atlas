@@ -24,6 +24,10 @@ public record DeadCodeCandidate(String stableId,
                                 int confidence,
                                 SourceLocation location) {
 
+    public DeadCodeCandidate {
+        evidence = List.copyOf(evidence);
+    }
+
     public String recommendation() {
         return "Review before removal";
     }

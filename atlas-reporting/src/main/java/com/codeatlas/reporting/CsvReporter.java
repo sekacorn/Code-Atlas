@@ -33,6 +33,7 @@ public final class CsvReporter {
         if (value == null) {
             return "";
         }
+        // Spreadsheet readers can evaluate formula prefixes even in quoted cells.
         if (!value.isEmpty() && isFormulaPrefix(value.charAt(0))) {
             value = "'" + value;
         }

@@ -1,0 +1,42 @@
+Code Atlas Third-Party Notices
+==============================
+
+Code Atlas is licensed under the Apache License, Version 2.0. The distributed
+application includes or depends on the third-party software listed below. Exact
+versions and transitive relationships are recorded in the CycloneDX software bill
+of materials shipped with each release.
+
+Apache License 2.0
+------------------
+- Error Prone annotations, Google LLC
+- Guava, failureaccess, and listenablefuture, Google LLC
+- J2ObjC annotations, Google LLC
+- JavaParser and JavaParser Symbol Solver, JavaParser contributors
+  (distributed under the Apache License 2.0 option)
+- Javassist, Shigeru Chiba and contributors
+  (distributed under the Apache License 2.0 option)
+- JSR-305 annotations
+- picocli, Remko Popma and contributors
+
+The complete Apache License 2.0 text is included in the root LICENSE file.
+
+Mozilla Public License 2.0
+--------------------------
+- H2 Database Engine 2.3.232, H2 Group
+
+H2 is distributed under its Mozilla Public License 2.0 option. Its complete
+upstream license is included at third-party-licenses/H2-LICENSE.txt. Corresponding
+source is available from https://github.com/h2database/h2database/tree/version-2.3.232.
+
+MIT License
+-----------
+- Checker Framework qualifiers, Checker Framework developers
+- SLF4J API and SLF4J Simple, QOS.ch Sarl and contributors
+
+The complete notices and MIT terms from the distributed artifacts are included at
+third-party-licenses/CHECKER-FRAMEWORK-LICENSE.txt and
+third-party-licenses/SLF4J-LICENSE.txt.
+
+This notice does not alter the license terms of any third-party component. Build
+and test tooling is not part of the runtime distribution. Its components are
+identified in Maven project metadata and build evidence where applicable.

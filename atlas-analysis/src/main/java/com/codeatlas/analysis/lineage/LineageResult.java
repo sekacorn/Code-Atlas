@@ -23,6 +23,12 @@ public record LineageResult(String startId,
                             boolean cyclesDetected,
                             boolean truncated) {
 
+    public LineageResult {
+        nodes = List.copyOf(nodes);
+        paths = List.copyOf(paths);
+        gaps = List.copyOf(gaps);
+    }
+
     /** A node in a lineage result: stable id, entity kind, label and evidence location. */
     public record Node(String id, String kind, String label, String location) {
     }
@@ -35,6 +41,10 @@ public record LineageResult(String startId,
 
     /** One ordered path; {@code minConfidence} is the weakest edge along it. */
     public record Path(List<String> nodeIds, List<Edge> edges, double minConfidence) {
+        public Path {
+            nodeIds = List.copyOf(nodeIds);
+            edges = List.copyOf(edges);
+        }
     }
 
     /** An honest hole in the lineage: something detected but not fully connected. */

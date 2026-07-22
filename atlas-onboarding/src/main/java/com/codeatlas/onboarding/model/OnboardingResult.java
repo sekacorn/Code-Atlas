@@ -33,6 +33,19 @@ public record OnboardingResult(String scanId,
                                List<String> ruleVersions,
                                List<String> knownLimitations) {
 
+    public OnboardingResult {
+        entryPoints = List.copyOf(entryPoints);
+        boundaries = List.copyOf(boundaries);
+        lineagePaths = List.copyOf(lineagePaths);
+        centralComponents = List.copyOf(centralComponents);
+        risks = List.copyOf(risks);
+        readingOrder = List.copyOf(readingOrder);
+        expertQuestions = List.copyOf(expertQuestions);
+        stages = List.copyOf(stages);
+        ruleVersions = List.copyOf(ruleVersions);
+        knownLimitations = List.copyOf(knownLimitations);
+    }
+
     /** Total wall-clock duration across stages (volatile; for the performance section). */
     public long totalDurationMillis() {
         return stages.stream().mapToLong(OnboardingStageResult::durationMillis).sum();

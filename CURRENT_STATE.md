@@ -1,34 +1,34 @@
-# Code Atlas — Current-State Assessment
+# Code Atlas - Current-State Assessment
 
-_Assessment date: 2026-07-16. Reflects the repository as inspected, not the
-original prompt. Scope: the whole codebase — the Java/Ada vertical slice plus the
+_Assessment date: 2026-07-21. Reflects the repository as inspected, not the
+original prompt. Scope: the whole codebase - the Java/Ada vertical slice plus the
 analysis-coverage, stable-identifier, persistence, data-lineage, tool-API, agent,
 configuration-parsing, graph-export, guided-onboarding, build-parsing and
 SQL-schema work._
 
 This document is the factual baseline: what exists, how healthy the build is, and
 the concrete technical risks that later milestones must address. It is written to
-be falsifiable — every claim here is checkable against the code or the test suite.
+be falsifiable - every claim here is checkable against the code or the test suite.
 
 ---
 
 ## Implemented (works today)
 
 - **Repository scanner** (`atlas-scanner`): recursive walk, default directory
-  exclusions (`.git`, `target`, `build`, `out`, `node_modules`, `bin`, `obj`, …),
+  exclusions (`.git`, `target`, `build`, `out`, `node_modules`, `bin`, `obj`, ...),
   extension-based language/category detection, SHA-256 content hashing, parallel
   hashing, size cap, symlink-skip by default. Verified: excluded dirs are skipped;
-  identical bytes → identical hash.
+  identical bytes -> identical hash.
 - **Java parser** (`atlas-parser-java`, JavaParser): packages, classes, interfaces,
   enums, records, methods, constructors, fields, imports, inheritance/implements,
   method calls, instantiations, **type-reference edges** (field/param/return),
   cyclomatic complexity, exposure heuristics (public/`main`/framework annotations).
 - **Configuration parser** (`atlas-parser-config`): XML (Spring beans, XXE-hardened
-  SAX), `.properties` and YAML → `CONFIGURATION` entities + `CONFIGURES` code
+  SAX), `.properties` and YAML -> `CONFIGURATION` entities + `CONFIGURES` code
   references (config key + location evidence); feeds dead-code (wired classes are not
   dead) and `get_configuration_references`; secrets masked, never stored.
 - **Build-file parser** (`atlas-parser-build`): Maven `pom.xml` (XXE-hardened SAX),
-  Gradle `build.gradle[.kts]`/`settings.gradle[.kts]` and GNAT `.gpr` → `MODULE`
+  Gradle `build.gradle[.kts]`/`settings.gradle[.kts]` and GNAT `.gpr` -> `MODULE`
   entities with coordinates, declared dependencies (`DEPENDS_ON`, resolved to a local
   module when one matches, otherwise left unresolved as an honest third-party
   coordinate) and **declared main units** (`DECLARES_MAIN`, resolved to the subprogram
@@ -37,14 +37,14 @@ be falsifiable — every claim here is checkable against the code or the test su
   a GNAT-declared main being reported as dead code. Read literally: nothing is
   resolved, fetched or executed.
 - **SQL/DDL parser** (`atlas-parser-sql`): `CREATE TABLE`/`VIEW`, columns, primary
-  keys and foreign keys (inline, table-level and `ALTER TABLE`) → `DATABASE_OBJECT`
+  keys and foreign keys (inline, table-level and `ALTER TABLE`) -> `DATABASE_OBJECT`
   and column entities with `file:line` evidence. A table's stable id is its name, so
   a declared table and the table a JPA `@Entity` maps to merge into one entity
   (`DATABASE_OBJECT` is an aggregating kind, so this is a merge, not a collision);
   a table without a `declaredIn` attribute is one no parsed schema declares. Foreign
   keys resolve to declared tables only. A statement scanner, not a SQL grammar.
 - **Ada/SPARK parser** (`atlas-parser-ada`): deterministic line-and-scope scanner
-  for `.ads`/`.adb` — packages & child packages, procedures, functions, types
+  for `.ads`/`.adb` - packages & child packages, procedures, functions, types
   (record/enum/access/derived), tasks, protected types, exceptions, `with`
   dependencies, renamings, generic instantiations, **SPARK Pre/Post contracts**,
   cyclomatic complexity, spec-vs-body exposure.
@@ -54,7 +54,7 @@ be falsifiable — every claim here is checkable against the code or the test su
   after all files are parsed; conservative on ambiguity (caps candidates, keeps
   originals). Now returns **link statistics** (resolved / unresolved / ambiguous).
 - **Stable identifiers** (`atlas-model`): deterministic, location-independent ids
-  (`java:type:…`, `ada:function:…(Integer)`, `file:…`) that survive line movement
+  (`java:type:...`, `ada:function:...(Integer)`, `file:...`) that survive line movement
   and rescans; exposed on findings in JSON/CSV. See [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md).
 - **Ada spec/body merge** (`atlas-model` + Ada parser): a package/subprogram's
   `.ads` spec and `.adb` body share one identity, retaining both source evidences
@@ -76,14 +76,14 @@ be falsifiable — every claim here is checkable against the code or the test su
   `atlas graph --type <t> --format <dot|svg>`.
 - **Guided onboarding** (`atlas-onboarding`): `atlas onboard <repo>` runs a
   twelve-stage, deterministic, read-only workflow (scan health, inventory, Java &
-  Ada entry points, architecture orientation, **Java↔Ada boundary discovery**,
+  Ada entry points, architecture orientation, **Java<->Ada boundary discovery**,
   representative lineage sampling, central components, risks & gaps, reading order,
   expert questions, final summary) and writes an evidence-backed package
   (deterministic JSON + self-contained HTML + text) **outside** the repository.
   It reuses the tool API and the deterministic agents; per-stage failures never
   abort the workflow. See [ONBOARDING.md](ONBOARDING.md).
 - **Explorer UI** (`atlas-ui`): `atlas serve` starts a local read-only explorer on
-  loopback — search the model, open an entity, and click through callers, callees,
+  loopback - search the model, open an entity, and click through callers, callees,
   dependencies, members, build module, configuration references and data lineage.
   Built on the read-only tool API and the JDK's built-in HTTP server (no new
   dependency). Server-rendered HTML with a light/dark/auto theme (remembered in a
@@ -115,18 +115,18 @@ be falsifiable — every claim here is checkable against the code or the test su
 ## Scaffolded only
 
 - None. The reactor contains only modules with real, tested functionality; there
-  are no empty placeholder modules or stub classes (by design — the addendum
+  are no empty placeholder modules or stub classes (by design - the addendum
   forbids placeholder modules).
 
 ## Missing (addendum requirements not yet implemented)
 
 - ~~Java data lineage~~ ~~Ada data lineage~~ **Both implemented** (Java:
-  endpoint→…→table; Ada: console→procedure→transformation→package state→output;
-  per-edge rule ids, confidence, resolution status, gaps, CLI/JSON/HTML — see
+  endpoint->...->table; Ada: console->procedure->transformation->package state->output;
+  per-edge rule ids, confidence, resolution status, gaps, CLI/JSON/HTML - see
   DATA_LINEAGE.md). Still missing: config/SQL parser input to lineage.
 - Custom-format parsers, and JSON configuration. (Configuration XML/YAML/properties,
   build files (Maven/Gradle/`.gpr`) and SQL/DDL schema are implemented.)
-- Ada database bindings — so a table shared between Java and Ada is still not
+- Ada database bindings - so a table shared between Java and Ada is still not
   detectable as a cross-language boundary. (JDBC / literal in-code SQL is extracted.)
 - ~~Build membership feeding dead-code / entry-point analysis~~ **Done**: files are
   assigned to their owning module, `get_build_membership` answers, and a build-declared
@@ -142,14 +142,14 @@ be falsifiable — every claim here is checkable against the code or the test su
 
 ## Current architecture
 
-**Module structure** (15 Maven modules, Java 21):
-`atlas-model` → `atlas-parser-api` → `atlas-scanner` → `atlas-parser-java` /
-`atlas-parser-ada` → `atlas-parser-config` → `atlas-index` → `atlas-analysis` → `atlas-reporting` →
-`atlas-graph` → `atlas-tools` → `atlas-agents` → `atlas-core` → `atlas-cli`.
+**Module structure** (18 Maven modules, Java 21):
+`atlas-model` -> `atlas-parser-api` -> `atlas-scanner` -> `atlas-parser-java` /
+`atlas-parser-ada` -> `atlas-parser-config` -> `atlas-index` -> `atlas-analysis` -> `atlas-reporting` ->
+`atlas-graph` -> `atlas-tools` -> `atlas-agents` -> `atlas-core` -> `atlas-cli`.
 
 **Main execution path** (`CodeAtlasPipeline.run`):
-`scan → read+parse each file in parallel → merge into one SoftwareModel →
-Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble ReportData`.
+`scan -> read+parse each file in parallel -> merge into one SoftwareModel ->
+Linker resolves cross-refs -> persist to H2 -> AnalysisEngine -> assemble ReportData`.
 
 - **Parser architecture:** `RepositoryParser` SPI discovered via `ServiceLoader`.
   Parsers are stateless; each `parse(ParseRequest)` returns an immutable
@@ -170,7 +170,7 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 - **CLI:** picocli; `scan`, `lineage`, `tool`, `orient`, `summarize`, `investigate`,
   `graph`, `onboard` and `serve` subcommands.
 - **UI:** a local read-only explorer (`atlas serve`, `atlas-ui`) plus static HTML
-  reports. Server-rendered, loopback-only, GET-only — it renders the index and can
+  reports. Server-rendered, loopback-only, GET-only - it renders the index and can
   change nothing. Inline CSS/JS only (nothing from any host); the script is
   progressive enhancement. No interactive graph viewer yet (graphs are static SVG).
 - **AI / agents:** the Repository Orientation Agent and entity summaries run in
@@ -179,22 +179,25 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 
 ## Current build health
 
-- **Build:** `mvn clean install` → **BUILD SUCCESS** (18 modules).
-- **Test:** `mvn test` → **205 tests, 0 failures, 0 errors** across model, scanner,
+- **Build:** `mvn clean verify` -> **BUILD SUCCESS** (18 modules).
+- **Test:** `mvn clean verify` -> **220 tests, 0 failures, 0 errors, 1 intentional
+  skip** across model, scanner,
   parsers (Java, Ada, configuration, build, SQL), index, analysis, core, graph,
   tools, agents, onboarding and the explorer UI.
+- **Static analysis:** SpotBugs completed with 0 findings at medium confidence or
+  higher. CycloneDX 1.6 generation produced a 32-component runtime SBOM.
 - **Warnings:** benign SLF4J "no providers" notices during test runs (no logging
   binding on the test classpath); the CLI ships `slf4j-simple` at runtime.
-- **Determinism:** verified — two scans of the same repo produce byte-identical
+- **Determinism:** verified - two scans of the same repo produce byte-identical
   JSON (excluding the timestamp field).
-- **Repository immutability:** verified — file hashes are identical before and
+- **Repository immutability:** verified - file hashes are identical before and
   after a scan; analysis never writes into the analyzed repo.
 - **Environment:** JDK 21, Maven 3.9+. Dependency download requires network at
   build time only; the built tool runs fully offline.
 
 ## Technical risks
 
-1. **Unstable identifiers — RESOLVED.** Entities now use deterministic,
+1. **Unstable identifiers - RESOLVED.** Entities now use deterministic,
    location-independent stable ids; Ada spec/body declarations merge into one
    logical entity. Line movement and rescans no longer change identity (proven by
    tests). Residual: parameter types are source-spelled (no symbol solver), so two
@@ -208,11 +211,11 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
    implemented with explicit sources, sinks, stores and unresolved gaps. Dynamic
    SQL, JAX-RS, message queues, and Ada database bindings remain outside the current
    rule set; see [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md).
-4. **Storage default — RESOLVED.** The CLI defaults to a file-backed index with
+4. **Storage default - RESOLVED.** The CLI defaults to a file-backed index with
    scan records; a failed scan never replaces the last completed snapshot.
 5. **Missing evidence richness.** No parser/rule versioning or file-hash provenance
    attached to findings yet.
-6. **Build-context blindness — largely closed.** Maven/Gradle/GNAT files are parsed:
+6. **Build-context blindness - largely closed.** Maven/Gradle/GNAT files are parsed:
    every file is assigned to its owning module and a GNAT-declared main is an entry
    point (no longer a dead-code false positive). Residual risk: build files are read
    literally, so behaviour expressed through property interpolation, dependency
@@ -236,12 +239,12 @@ Linker resolves cross-refs → persist to H2 → AnalysisEngine → assemble Rep
 1. **Analysis-coverage reporting + `ResolutionStatus`** (honest uncertainty). _Done._
 2. **Stable identifiers + Ada spec/body merge** (resolved risk #1). _Done._
 3. **Persistent file-backed H2 default + scan versioning + parse reuse** (resolved risk #4). _Done._
-4. **Java data-lineage vertical slice** (endpoint→…→table, evidence-backed). _Done._
-5. **Ada data-lineage vertical slice** (console→procedure→transformation→state→output). _Done._
+4. **Java data-lineage vertical slice** (endpoint->...->table, evidence-backed). _Done._
+5. **Ada data-lineage vertical slice** (console->procedure->transformation->state->output). _Done._
 6. **Read-only agent tool API** (atlas-tools, `atlas tool`, DB-level read-only). _Done._
 7. **Deterministic summaries + Repository Orientation Agent** (atlas-agents,
    `atlas orient` / `atlas summarize`). _Done._
-8. **Data-Lineage Investigator Agent** (`atlas investigate`). _Done — every
-   numbered addendum milestone (1–10) is now complete._
+8. **Data-Lineage Investigator Agent** (`atlas investigate`). _Done - every
+   numbered addendum milestone (1-10) is now complete._
 9. Next (beyond the addendum plan): richer dynamic-language and runtime-flow
    coverage, interactive graph navigation, optional local-AI mode, AgentForge adapter.

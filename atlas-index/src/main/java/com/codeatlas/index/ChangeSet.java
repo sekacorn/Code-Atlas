@@ -12,6 +12,13 @@ public record ChangeSet(Set<String> added,
                         Set<String> removed,
                         Set<String> unchanged) {
 
+    public ChangeSet {
+        added = Set.copyOf(added);
+        changed = Set.copyOf(changed);
+        removed = Set.copyOf(removed);
+        unchanged = Set.copyOf(unchanged);
+    }
+
     public boolean isFirstRun() {
         return unchanged.isEmpty() && changed.isEmpty() && removed.isEmpty();
     }

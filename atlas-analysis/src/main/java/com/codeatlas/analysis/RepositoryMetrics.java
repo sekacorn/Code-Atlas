@@ -17,6 +17,11 @@ public record RepositoryMetrics(int totalFiles,
                                 Map<String, Integer> filesByLanguage,
                                 Map<EntityKind, Integer> entityCounts) {
 
+    public RepositoryMetrics {
+        filesByLanguage = java.util.Collections.unmodifiableMap(new java.util.TreeMap<>(filesByLanguage));
+        entityCounts = java.util.Collections.unmodifiableMap(new java.util.TreeMap<>(entityCounts));
+    }
+
     public int countOf(EntityKind kind) {
         return entityCounts.getOrDefault(kind, 0);
     }

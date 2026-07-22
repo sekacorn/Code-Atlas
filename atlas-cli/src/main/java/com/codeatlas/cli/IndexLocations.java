@@ -1,6 +1,7 @@
 package com.codeatlas.cli;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -22,7 +23,7 @@ final class IndexLocations {
 
     static Path defaultIndexFor(Path repositoryRoot) {
         Path abs = repositoryRoot.toAbsolutePath().normalize();
-        String name = abs.getFileName() != null ? abs.getFileName().toString() : "repo";
+        String name = displayName(abs, "repo");
         String safe = name.replaceAll("[^A-Za-z0-9._-]", "_");
         return Path.of(System.getProperty("user.home"), ".code-atlas", "index",
                 safe + "-" + hash8(abs.toString()), "atlas");
@@ -44,8 +45,27 @@ final class IndexLocations {
      */
     static String repositoryKey(Path repositoryRoot) {
         Path abs = repositoryRoot.toAbsolutePath().normalize();
-        String name = abs.getFileName() != null ? abs.getFileName().toString() : "repo";
+        String name = displayName(abs, "repo");
         return name.replaceAll("[^A-Za-z0-9._-]", "_") + "-" + hash8(abs.toString());
+    }
+
+    static String repositoryDisplayName(Path repositoryRoot) {
+        return displayName(repositoryRoot.toAbsolutePath().normalize(), "repository");
+    }
+
+    static boolean indexDirectoryExists(Path index) {
+        return Files.exists(indexDirectory(index));
+    }
+
+    static Path indexDirectory(Path index) {
+        Path absolute = index.toAbsolutePath();
+        Path parent = absolute.getParent();
+        return parent != null ? parent : absolute;
+    }
+
+    private static String displayName(Path path, String fallback) {
+        Path fileName = path.getFileName();
+        return fileName != null ? fileName.toString() : fallback;
     }
 
     private static String hash8(String s) {

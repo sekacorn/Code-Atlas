@@ -32,4 +32,7 @@ public record BoundarySummary(BoundaryType type,
                               String confidence,
                               String missingInformation,
                               String resolutionStatus) {
+    public BoundarySummary {
+        evidence = List.copyOf(evidence);
+    }
 }

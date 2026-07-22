@@ -22,6 +22,15 @@ public record FinalSummary(List<QA> answers,
                            List<String> unresolvedQuestions,
                            List<String> knownLimitations) {
 
+    public FinalSummary {
+        answers = List.copyOf(answers);
+        confirmedFacts = List.copyOf(confirmedFacts);
+        resolvedRelationships = List.copyOf(resolvedRelationships);
+        inferredArchitecture = List.copyOf(inferredArchitecture);
+        unresolvedQuestions = List.copyOf(unresolvedQuestions);
+        knownLimitations = List.copyOf(knownLimitations);
+    }
+
     /** One question and its compact answer. */
     public record QA(String question, String answer) {
     }

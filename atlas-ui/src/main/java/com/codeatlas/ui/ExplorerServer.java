@@ -92,6 +92,11 @@ public final class ExplorerServer implements AutoCloseable {
     private void handle(HttpExchange exchange) throws IOException {
         View view = new View(themeOf(exchange), currentUrl(exchange), newNonce());
         try {
+            if (!allowedHost(exchange.getRequestHeaders().getFirst("Host"))) {
+                send(exchange, 400, "text/plain; charset=utf-8",
+                        "Host must identify the local loopback explorer.", view);
+                return;
+            }
             if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
                 // The explorer is a read-only view; nothing here accepts a mutation.
                 send(exchange, 405, "text/plain; charset=utf-8",
@@ -162,6 +167,38 @@ public final class ExplorerServer implements AutoCloseable {
         return raw;
     }
 
+    static boolean allowedHost(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        String host = raw.trim().toLowerCase(java.util.Locale.ROOT);
+        if (host.startsWith("[")) {
+            int close = host.indexOf(']');
+            return close > 0 && "::1".equals(host.substring(1, close))
+                    && validOptionalPort(host.substring(close + 1));
+        }
+        int colon = host.indexOf(':');
+        String name = colon >= 0 ? host.substring(0, colon) : host;
+        String port = colon >= 0 ? host.substring(colon) : "";
+        return ("localhost".equals(name) || "127.0.0.1".equals(name))
+                && validOptionalPort(port);
+    }
+
+    private static boolean validOptionalPort(String suffix) {
+        if (suffix.isEmpty()) {
+            return true;
+        }
+        if (suffix.length() < 2 || suffix.charAt(0) != ':') {
+            return false;
+        }
+        try {
+            int port = Integer.parseInt(suffix.substring(1));
+            return port >= 1 && port <= 65535;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     private Theme themeOf(HttpExchange exchange) {
         for (String header : exchange.getRequestHeaders().getOrDefault("Cookie", List.of())) {
             for (String pair : header.split(";")) {
@@ -222,6 +259,9 @@ public final class ExplorerServer implements AutoCloseable {
                         + "base-uri 'none'; frame-ancestors 'none'");
         exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
         exchange.getResponseHeaders().set("Referrer-Policy", "no-referrer");
+        exchange.getResponseHeaders().set("Cross-Origin-Resource-Policy", "same-origin");
+        exchange.getResponseHeaders().set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+        exchange.getResponseHeaders().set("Cache-Control", "no-store");
         exchange.sendResponseHeaders(status, bytes.length);
         exchange.getResponseBody().write(bytes);
         exchange.close();

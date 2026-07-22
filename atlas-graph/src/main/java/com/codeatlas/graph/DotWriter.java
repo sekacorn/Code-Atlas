@@ -56,6 +56,7 @@ public final class DotWriter {
     }
 
     static String quote(String s) {
+        // Escape backslashes first so later escape sequences are not doubled.
         return "\"" + s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\r", "\\r")

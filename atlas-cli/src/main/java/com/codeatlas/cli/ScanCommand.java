@@ -11,6 +11,7 @@ import com.codeatlas.reporting.ReportBundle;
 import com.codeatlas.scanner.ScanOptions;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.ParentCommand;
 import picocli.CommandLine.Parameters;
 
 import java.nio.file.Path;
@@ -24,6 +25,9 @@ import java.util.concurrent.Callable;
         mixinStandardHelpOptions = true,
         description = "Scan a repository, build the software model, analyse it and write reports.")
 public final class ScanCommand implements Callable<Integer> {
+
+    @ParentCommand
+    private AtlasCli parent;
 
     @Parameters(index = "0", description = "Path to the repository root to analyse.")
     private Path repository;
@@ -48,6 +52,18 @@ public final class ScanCommand implements Callable<Integer> {
     @Option(names = {"--threads"}, description = "Parallel worker threads (default: CPU count).")
     private int threads = 0;
 
+    @Option(names = "--max-file-bytes", description = "Maximum accepted size of one file in bytes.")
+    private Long maxFileBytes;
+
+    @Option(names = "--max-files", description = "Maximum number of accepted files.")
+    private Integer maxFiles;
+
+    @Option(names = "--max-total-bytes", description = "Maximum aggregate size of accepted files in bytes.")
+    private Long maxTotalBytes;
+
+    @Option(names = "--timeout-seconds", description = "Maximum scan and parse duration in seconds.")
+    private Long timeoutSeconds;
+
     @Override
     public Integer call() {
         if (!repository.toFile().isDirectory()) {
@@ -55,16 +71,27 @@ public final class ScanCommand implements Callable<Integer> {
             return 2;
         }
 
+        boolean hardened = parent != null && parent.hardened();
         ScanOptions.Builder scan = ScanOptions.builder();
-        if (threads > 0) {
-            scan.threads(threads);
+        if (hardened) {
+            scan.maxFileSizeBytes(ScanOptions.HARDENED_MAX_FILE_SIZE_BYTES)
+                    .maxFiles(ScanOptions.HARDENED_MAX_FILES)
+                    .maxTotalBytes(ScanOptions.HARDENED_MAX_TOTAL_BYTES)
+                    .maxDurationMillis(ScanOptions.HARDENED_MAX_DURATION_MILLIS)
+                    .threads(ScanOptions.HARDENED_MAX_THREADS);
+        }
+        try {
+            applyResourceOptions(scan, hardened);
+        } catch (IllegalArgumentException | ArithmeticException e) {
+            System.err.println("Invalid scan limits: " + e.getMessage());
+            return 2;
         }
         // Persistent file-backed storage is the default; in-memory only on request.
         Path effectiveIndex = null;
         if (!inMemory) {
             effectiveIndex = indexPath != null ? indexPath : IndexLocations.defaultIndexFor(repository);
             try {
-                java.nio.file.Files.createDirectories(effectiveIndex.toAbsolutePath().getParent());
+                java.nio.file.Files.createDirectories(IndexLocations.indexDirectory(effectiveIndex));
             } catch (java.io.IOException e) {
                 System.err.println("Cannot create index directory: " + e.getMessage());
                 return 2;
@@ -81,7 +108,13 @@ public final class ScanCommand implements Callable<Integer> {
         System.out.println(effectiveIndex != null
                 ? "Index: " + effectiveIndex.toAbsolutePath()
                 : "Index: in-memory (temporary session)");
-        PipelineResult result = CodeAtlasPipeline.withDiscoveredParsers().run(repository, config);
+        PipelineResult result;
+        try {
+            result = CodeAtlasPipeline.withDiscoveredParsers().run(repository, config);
+        } catch (com.codeatlas.scanner.ScanException | IllegalStateException e) {
+            System.err.println("Scan failed: " + e.getMessage());
+            return 3;
+        }
 
         printSummary(result);
 
@@ -92,6 +125,39 @@ public final class ScanCommand implements Callable<Integer> {
         System.out.println();
         System.out.println("Open " + outputDir.resolve("report.html").toAbsolutePath() + " in a browser.");
         return 0;
+    }
+
+    private void applyResourceOptions(ScanOptions.Builder scan, boolean hardened) {
+        if (threads > 0) {
+            enforceHardenedMaximum(hardened, threads, ScanOptions.HARDENED_MAX_THREADS, "threads");
+            scan.threads(threads);
+        }
+        if (maxFileBytes != null) {
+            enforceHardenedMaximum(hardened, maxFileBytes,
+                    ScanOptions.HARDENED_MAX_FILE_SIZE_BYTES, "max-file-bytes");
+            scan.maxFileSizeBytes(maxFileBytes);
+        }
+        if (maxFiles != null) {
+            enforceHardenedMaximum(hardened, maxFiles, ScanOptions.HARDENED_MAX_FILES, "max-files");
+            scan.maxFiles(maxFiles);
+        }
+        if (maxTotalBytes != null) {
+            enforceHardenedMaximum(hardened, maxTotalBytes,
+                    ScanOptions.HARDENED_MAX_TOTAL_BYTES, "max-total-bytes");
+            scan.maxTotalBytes(maxTotalBytes);
+        }
+        if (timeoutSeconds != null) {
+            long millis = Math.multiplyExact(timeoutSeconds, 1000L);
+            enforceHardenedMaximum(hardened, millis,
+                    ScanOptions.HARDENED_MAX_DURATION_MILLIS, "timeout-seconds");
+            scan.maxDurationMillis(millis);
+        }
+    }
+
+    private static void enforceHardenedMaximum(boolean hardened, long actual, long maximum, String option) {
+        if (hardened && actual > maximum) {
+            throw new IllegalArgumentException(option + " exceeds the hardened maximum of " + maximum);
+        }
     }
 
     private void printSummary(PipelineResult result) {

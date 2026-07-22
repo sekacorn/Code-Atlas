@@ -23,4 +23,9 @@ public record OnboardingStageResult(String name,
                                     List<EvidenceRef> evidence,
                                     List<String> warnings,
                                     long durationMillis) {
+    public OnboardingStageResult {
+        inputs = List.copyOf(inputs);
+        evidence = List.copyOf(evidence);
+        warnings = List.copyOf(warnings);
+    }
 }

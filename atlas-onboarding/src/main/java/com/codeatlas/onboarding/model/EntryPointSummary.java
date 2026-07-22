@@ -30,6 +30,10 @@ public record EntryPointSummary(String stableId,
                                 String confidence,
                                 String resolutionStatus) {
 
+    public EntryPointSummary {
+        evidence = List.copyOf(evidence);
+    }
+
     /** True for executable main units, however they were discovered. */
     public boolean isMain() {
         return category == EntryPointCategory.MAIN;

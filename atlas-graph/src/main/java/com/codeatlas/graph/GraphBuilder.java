@@ -241,6 +241,7 @@ public final class GraphBuilder {
             best = Math.max(best, 1 + longestPath(pred, incoming, memo, onPath));
         }
         onPath.remove(node);
+        // Cache only after unwinding; a cycle cut applies to the current path only.
         memo.put(node, best);
         return best;
     }

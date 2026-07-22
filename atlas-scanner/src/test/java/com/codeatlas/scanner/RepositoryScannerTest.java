@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RepositoryScannerTest {
@@ -68,5 +69,51 @@ class RepositoryScannerTest {
         ScanResult followedScan = new RepositoryScanner().scan(root, following);
         assertTrue(followedScan.files().stream()
                 .anyMatch(f -> f.relativePath().equals("linked/Linked.java")));
+    }
+
+    @Test
+    void rejectsMoreFilesThanTheConfiguredLimit(@TempDir Path root) throws IOException {
+        Files.writeString(root.resolve("A.java"), "class A {}");
+        Files.writeString(root.resolve("B.java"), "class B {}");
+
+        ScanOptions options = ScanOptions.builder().maxFiles(1).build();
+        ScanException error = assertThrows(ScanException.class,
+                () -> new RepositoryScanner().scan(root, options));
+
+        assertTrue(error.getMessage().contains("file limit"), error.getMessage());
+    }
+
+    @Test
+    void rejectsAcceptedContentAboveTheAggregateByteLimit(@TempDir Path root) throws IOException {
+        Files.writeString(root.resolve("A.java"), "class A {}");
+
+        ScanOptions options = ScanOptions.builder().maxTotalBytes(5).build();
+        ScanException error = assertThrows(ScanException.class,
+                () -> new RepositoryScanner().scan(root, options));
+
+        assertTrue(error.getMessage().contains("byte limit"), error.getMessage());
+    }
+
+    @Test
+    void rejectsNonPositiveResourceLimits() {
+        assertThrows(IllegalArgumentException.class,
+                () -> ScanOptions.builder().maxFiles(0));
+        assertThrows(IllegalArgumentException.class,
+                () -> ScanOptions.builder().maxTotalBytes(0));
+        assertThrows(IllegalArgumentException.class,
+                () -> ScanOptions.builder().maxDurationMillis(0));
+        assertThrows(IllegalArgumentException.class,
+                () -> ScanOptions.builder().threads(0));
+    }
+
+    @Test
+    void rejectsAFileThatGrowsAfterDirectoryWalking(@TempDir Path root) throws IOException {
+        Path file = root.resolve("Changing.java");
+        Files.writeString(file, "class Changing {}");
+
+        ScanException error = assertThrows(ScanException.class,
+                () -> RepositoryScanner.sha256(file, 1, Long.MAX_VALUE));
+
+        assertTrue(error.getMessage().contains("changed"), error.getMessage());
     }
 }

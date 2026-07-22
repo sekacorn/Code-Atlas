@@ -11,6 +11,10 @@ import java.util.StringJoiner;
  */
 public record AgentReport(String scanId, String title, List<AgentAnswer> answers) {
 
+    public AgentReport {
+        answers = List.copyOf(answers);
+    }
+
     public String toText() {
         StringBuilder sb = new StringBuilder();
         String bar = "=".repeat(72);

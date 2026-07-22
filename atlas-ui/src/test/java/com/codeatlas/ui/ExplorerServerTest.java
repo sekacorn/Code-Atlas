@@ -237,6 +237,17 @@ class ExplorerServerTest {
     }
 
     @Test
+    void hostHeaderAcceptsOnlyLoopbackNames() {
+        assertTrue(ExplorerServer.allowedHost("127.0.0.1:8138"));
+        assertTrue(ExplorerServer.allowedHost("localhost"));
+        assertTrue(ExplorerServer.allowedHost("[::1]:8138"));
+        assertFalse(ExplorerServer.allowedHost("example.test:8138"));
+        assertFalse(ExplorerServer.allowedHost("127.0.0.1.example.test"));
+        assertFalse(ExplorerServer.allowedHost("localhost:bad"));
+        assertFalse(ExplorerServer.allowedHost(null));
+    }
+
+    @Test
     void untrustedTextFromTheModelIsEscaped() throws Exception {
         // Search text is echoed back into the form; it must never become markup.
         HttpResponse<String> r = get("/search?q=" + Html.urlEncode("<script>alert(1)</script>"));

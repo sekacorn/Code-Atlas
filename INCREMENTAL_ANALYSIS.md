@@ -1,4 +1,4 @@
-# Code Atlas — Incremental Analysis
+# Code Atlas - Incremental Analysis
 
 _Created with the persistent-scan milestone._
 
@@ -17,8 +17,8 @@ are reused **only when all of these match**:
    cached facts, and
 3. that parser's **version** is unchanged.
 
-Anything else — edited content, a newly installed parser claiming the file, a
-parser upgrade — forces a re-parse. Reuse is required to be indistinguishable from
+Anything else - edited content, a newly installed parser claiming the file, a
+parser upgrade - forces a re-parse. Reuse is required to be indistinguishable from
 re-parsing: the cache stores the parser output verbatim (including source
 locations with columns, attributes, and unresolved references), and tests assert
 that a fully-reused scan produces an identical model and identical scan id.
@@ -26,7 +26,7 @@ that a fully-reused scan produces an identical model and identical scan id.
 ## What is never cached
 
 - **Cross-reference linking**, **lineage rules** and **analysis** run fresh on
-  every scan over the merged model — they are cheap, deterministic, and depend on
+  every scan over the merged model - they are cheap, deterministic, and depend on
   the whole repository, not single files. (Lineage edges are then persisted with
   the scan snapshot, so `atlas lineage` reads them without rescanning.)
 - The `FILE` entities' line statistics are cached in the parse-cache header so

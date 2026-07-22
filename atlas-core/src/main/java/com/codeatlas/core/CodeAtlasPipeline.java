@@ -23,7 +23,9 @@ import com.codeatlas.scanner.ScannedFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,6 +43,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.Set;
 
 /**
@@ -77,7 +81,9 @@ public final class CodeAtlasPipeline {
 
     public PipelineResult run(Path repositoryRoot, PipelineConfig config) {
         long start = System.currentTimeMillis();
+        long deadlineNanos = deadlineFrom(config.scanOptions().maxDurationMillis());
         ScanResult scan = scanner.scan(repositoryRoot, config.scanOptions());
+        checkDeadline(deadlineNanos, "starting model construction");
 
         Map<String, String> pathToHash = new HashMap<>();
         for (ScannedFile f : scan.files()) {
@@ -91,7 +97,7 @@ public final class CodeAtlasPipeline {
             long scanRowId = store.beginScan(scanId, repositoryRoot.toString(), scan.fileCount());
             try {
                 PipelineResult result = buildAndPersist(repositoryRoot, config, scan, pathToHash,
-                        scanId, scanRowId, store, changes, start);
+                        scanId, scanRowId, store, changes, start, deadlineNanos);
                 return result;
             } catch (RuntimeException e) {
                 store.markScanFailed(scanRowId);
@@ -102,7 +108,8 @@ public final class CodeAtlasPipeline {
 
     private PipelineResult buildAndPersist(Path repositoryRoot, PipelineConfig config, ScanResult scan,
                                            Map<String, String> pathToHash, String scanId, long scanRowId,
-                                           AtlasStore store, ChangeSet changes, long start) {
+                                           AtlasStore store, ChangeSet changes, long start,
+                                           long deadlineNanos) {
         SoftwareModel model = new SoftwareModel();
         Coverage cov = new Coverage();
 
@@ -121,7 +128,8 @@ public final class CodeAtlasPipeline {
         }
 
         // Parse changed/new files in parallel (pure CPU + file reads, no store access).
-        Map<String, ParsedFile> parsed = parseFiles(toParse, config.scanOptions().threads());
+        Map<String, ParsedFile> parsed = parseFiles(toParse, config.scanOptions().threads(), deadlineNanos);
+        checkDeadline(deadlineNanos, "merging parser results");
 
         // Merge cached facts (single-threaded store reads), then fresh results.
         List<CacheEntry> newCacheEntries = new ArrayList<>();
@@ -149,8 +157,8 @@ public final class CodeAtlasPipeline {
 
         // PROJECT root + physical containment of every file. Its identity is the
         // repository name (never the absolute path, which is machine-specific).
-        String projectName = repositoryRoot.getFileName() != null
-                ? repositoryRoot.getFileName().toString() : repositoryRoot.toString();
+        Path projectFileName = repositoryRoot.getFileName();
+        String projectName = projectFileName != null ? projectFileName.toString() : repositoryRoot.toString();
         Entity project = Entity.builder(EntityKind.PROJECT, projectName)
                 .qualifiedName(projectName)
                 .language("n/a")
@@ -161,17 +169,21 @@ public final class CodeAtlasPipeline {
         }
 
         LinkStats linkStats = linker.link(model);
+        checkDeadline(deadlineNanos, "linking references");
 
         // Build membership is a cross-file fact: assign each file to the deepest
         // build module whose directory contains it. Runs after linking so module
         // entities exist and their declared dependencies are already resolved.
         new BuildMembershipLinker().apply(model);
+        checkDeadline(deadlineNanos, "assigning build membership");
 
         // Lineage rules run after linking (they need resolved type/impl edges) and
         // before persistence (lineage facts belong to the scan snapshot).
         new com.codeatlas.analysis.lineage.LineageAnalyzer().apply(model);
         new com.codeatlas.analysis.lineage.AdaLineageAnalyzer().apply(model);
+        checkDeadline(deadlineNanos, "analyzing data lineage");
 
+        checkDeadline(deadlineNanos, "starting completed-scan persistence");
         store.persistCompletedScan(scanRowId, model, pathToHash, newCacheEntries, pathToHash.keySet());
 
         AnalysisResult analysis = new AnalysisEngine(
@@ -217,7 +229,8 @@ public final class CodeAtlasPipeline {
     private record ParsedFile(ScannedFile file, CachedFileMeta meta, ParseResult result) {
     }
 
-    private Map<String, ParsedFile> parseFiles(List<ScannedFile> files, int configuredThreads) {
+    private Map<String, ParsedFile> parseFiles(List<ScannedFile> files, int configuredThreads,
+                                               long deadlineNanos) {
         if (files.isEmpty()) {
             return Map.of();
         }
@@ -229,9 +242,14 @@ public final class CodeAtlasPipeline {
                 futures.add(pool.submit(() -> parseFile(file)));
             }
             Map<String, ParsedFile> parsed = new HashMap<>();
+            // Join in submission order so a failure always names the same file.
             for (int i = 0; i < futures.size(); i++) {
                 try {
-                    ParsedFile result = futures.get(i).get();
+                    long remaining = deadlineNanos - System.nanoTime();
+                    if (remaining <= 0) {
+                        throw new TimeoutException("scan deadline reached");
+                    }
+                    ParsedFile result = futures.get(i).get(remaining, TimeUnit.NANOSECONDS);
                     parsed.put(result.file().relativePath(), result);
                 } catch (InterruptedException e) {
                     pool.shutdownNow();
@@ -240,6 +258,10 @@ public final class CodeAtlasPipeline {
                 } catch (ExecutionException e) {
                     Throwable cause = e.getCause() != null ? e.getCause() : e;
                     throw new IllegalStateException("Failed to parse " + files.get(i).relativePath(), cause);
+                } catch (TimeoutException e) {
+                    pool.shutdownNow();
+                    throw new IllegalStateException("Scan duration limit exceeded while parsing "
+                            + files.get(i).relativePath(), e);
                 }
             }
             return parsed;
@@ -334,9 +356,31 @@ public final class CodeAtlasPipeline {
         return "scan-" + HexFormat.of().formatHex(digest.digest()).substring(0, 12);
     }
 
-    private String readContent(ScannedFile f) {
+    String readContent(ScannedFile f) {
+        if (f.sizeBytes() > Integer.MAX_VALUE - 8L) {
+            throw new IllegalStateException("File is too large to parse safely: " + f.relativePath());
+        }
         try {
-            byte[] bytes = Files.readAllBytes(f.absolutePath());
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            ByteArrayOutputStream output = new ByteArrayOutputStream((int) f.sizeBytes());
+            byte[] buffer = new byte[16 * 1024];
+            long total = 0;
+            try (InputStream input = Files.newInputStream(f.absolutePath())) {
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    if (read > f.sizeBytes() - total) {
+                        throw changedDuringScan(f);
+                    }
+                    output.write(buffer, 0, read);
+                    digest.update(buffer, 0, read);
+                    total += read;
+                }
+            }
+            if (total != f.sizeBytes()
+                    || !HexFormat.of().formatHex(digest.digest()).equals(f.contentHash())) {
+                throw changedDuringScan(f);
+            }
+            byte[] bytes = output.toByteArray();
             // Skip files that look binary (contain NUL in the first block).
             int scan = Math.min(bytes.length, 8000);
             for (int i = 0; i < scan; i++) {
@@ -345,10 +389,17 @@ public final class CodeAtlasPipeline {
                 }
             }
             return new String(bytes, StandardCharsets.UTF_8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
         } catch (IOException e) {
             log.warn("Cannot read {}: {}", f.relativePath(), e.getMessage());
             return null;
         }
+    }
+
+    private static IllegalStateException changedDuringScan(ScannedFile file) {
+        return new IllegalStateException("File changed while it was being scanned: "
+                + file.relativePath());
     }
 
     private static String fileName(String path) {
@@ -360,5 +411,17 @@ public final class CodeAtlasPipeline {
         String name = fileName(path);
         int dot = name.lastIndexOf('.');
         return dot > 0 ? name.substring(dot + 1).toLowerCase(java.util.Locale.ROOT) : "";
+    }
+
+    private static long deadlineFrom(long durationMillis) {
+        long durationNanos = TimeUnit.MILLISECONDS.toNanos(durationMillis);
+        long now = System.nanoTime();
+        return durationNanos >= Long.MAX_VALUE - now ? Long.MAX_VALUE : now + durationNanos;
+    }
+
+    private static void checkDeadline(long deadlineNanos, String operation) {
+        if (System.nanoTime() >= deadlineNanos) {
+            throw new IllegalStateException("Scan duration limit exceeded while " + operation);
+        }
     }
 }

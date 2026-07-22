@@ -25,4 +25,8 @@ public record ReadingRecommendation(int order,
                                     List<String> prerequisites,
                                     List<EvidenceRef> evidence,
                                     String confidence) {
+    public ReadingRecommendation {
+        prerequisites = List.copyOf(prerequisites);
+        evidence = List.copyOf(evidence);
+    }
 }

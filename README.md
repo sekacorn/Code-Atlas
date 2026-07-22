@@ -2,8 +2,8 @@
 
 **Offline-first software intelligence and static analysis platform.**
 
-Code Atlas scans large, mixed-language repositories and builds a complete,
-queryable structural model of the software — so engineers can understand legacy
+Code Atlas scans large, mixed-language repositories and builds a queryable
+structural model of the software - so engineers can understand legacy
 systems, map architecture, find dead code, measure complexity, and see how
 components depend on each other. It runs **entirely locally**, needs **no
 administrator privileges**, and requires **no cloud and no AI** for any core
@@ -16,8 +16,8 @@ function. AI, if ever enabled, is an optional explanation layer only.
 
 ## Quick start
 
-A menu launcher wraps the whole workflow — build, scan, view the report, and the
-common queries — so you don't have to remember the `java -jar` invocations. It
+A menu launcher wraps the whole workflow - build, scan, view the report, and the
+common queries - so you don't have to remember the `java -jar` invocations. It
 serves the HTML report from a **loopback-only** local web server (the JDK's
 built-in `jwebserver`, falling back to Python) and can start and stop that server
 for you.
@@ -52,9 +52,9 @@ Either opens the same interactive menu:
   0) Quit
 ```
 
-A typical first run is **1** (build) → **2** (scan — point it at any repository)
-→ **3** (start the server, which opens `http://127.0.0.1:8137/report.html` in
-your browser) → **4** (stop the server when you're done).
+A typical first run is **1** (build) -> **2** (scan - point it at any repository)
+-> **3** (start the server, which opens `http://127.0.0.1:8137/report.html` in
+your browser) -> **4** (stop the server when you're done).
 
 Every option is also a direct sub-command, so you can drive it from scripts:
 
@@ -69,13 +69,13 @@ Every option is also a direct sub-command, so you can drive it from scripts:
 ```bash
 ./atlas.sh build
 ./atlas.sh scan /path/to/repo
-./atlas.sh start                  # → http://127.0.0.1:8137/report.html
+./atlas.sh start                  # -> http://127.0.0.1:8137/report.html
 ./atlas.sh stop
 ```
 
 The port defaults to `8137`; override it with the `ATLAS_PORT` environment
 variable. The launcher keeps its runtime state (server PID, last-scanned repo)
-under `.atlas-run/` and writes reports to `atlas-report/` — both git-ignored.
+under `.atlas-run/` and writes reports to `atlas-report/` - both git-ignored.
 Nothing binds beyond `127.0.0.1` and no network access is required.
 
 For the underlying commands and every option, see [Build](#build) and [Run](#run).
@@ -110,14 +110,16 @@ The static report can be opened directly from disk and remains fully self-contai
 
 ## Documentation
 
-- [CURRENT_STATE.md](CURRENT_STATE.md) — factual assessment of what is implemented, build health, and technical risks.
-- [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md) — source evidence, resolution status, and analysis coverage.
-- [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) — the deterministic id grammar, Ada spec/body merge, and collisions.
-- [DATA_LINEAGE.md](DATA_LINEAGE.md) — Java **and Ada** data lineage: rules, confidence, CLI queries, tracing recipes, JSON format, gaps.
-- [PERSISTENCE.md](PERSISTENCE.md) / [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) — file-backed index, scan versioning, parse reuse.
-- [AGENTS.md](AGENTS.md) — the read-only agent tool API and the deterministic agents (Orientation, Data-Lineage Investigator, summaries, onboarding coordinator).
-- [ONBOARDING.md](ONBOARDING.md) — the guided `atlas onboard` workflow: stages, entry points, Java/Ada boundaries, reading order, expert questions, report formats.
-- [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) — what the tool does not (yet) do, and what it does not claim.
+- [assurance/README.md](assurance/README.md) - security architecture, threat model, data handling, deployment hardening, development practices, and reproducible test evidence.
+- [SECURITY.md](SECURITY.md) - private vulnerability reporting and supported-version policy.
+- [CURRENT_STATE.md](CURRENT_STATE.md) - factual assessment of what is implemented, build health, and technical risks.
+- [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md) - source evidence, resolution status, and analysis coverage.
+- [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) - the deterministic id grammar, Ada spec/body merge, and collisions.
+- [DATA_LINEAGE.md](DATA_LINEAGE.md) - Java **and Ada** data lineage: rules, confidence, CLI queries, tracing recipes, JSON format, gaps.
+- [PERSISTENCE.md](PERSISTENCE.md) / [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) - file-backed index, scan versioning, parse reuse.
+- [AGENTS.md](AGENTS.md) - the read-only agent tool API and the deterministic agents (Orientation, Data-Lineage Investigator, summaries, onboarding coordinator).
+- [ONBOARDING.md](ONBOARDING.md) - the guided `atlas onboard` workflow: stages, entry points, Java/Ada boundaries, reading order, expert questions, report formats.
+- [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) - what the tool does not (yet) do, and what it does not claim.
 
 ## Status
 
@@ -125,50 +127,50 @@ The full pipeline runs end to end, and every capability below is implemented and
 test-enforced:
 
 ```
-scan → parse (Java, Ada, configuration, build files, SQL/DDL) → unified model
-     → link cross-references → local H2 index → analysis + data lineage
-     → reports / graphs / deterministic agents / guided onboarding / explorer UI
+scan -> parse (Java, Ada, configuration, build files, SQL/DDL) -> unified model
+     -> link cross-references -> local H2 index -> analysis + data lineage
+     -> reports / graphs / deterministic agents / guided onboarding / explorer UI
 ```
 
 It directly answers the platform's core questions on a real repository:
 **what exists, how it connects, what depends on what, what is unused, what is
-risky, how large the system is, where data comes from and who consumes it, and —
-for a developer arriving cold — where to start.**
+risky, how large the system is, where data comes from and who consumes it, and -
+for a developer arriving cold - where to start.**
 
-**18 Maven modules · 205 tests with 0 failures · `mvn clean install` green · no AI, no
-network, no writes into the analyzed repository.**
+**18 Maven modules | 220 tests with 0 failures or errors | `mvn clean verify` green |
+no AI, no network, no writes into the analyzed repository.**
 
 ### What works today
 
 | Capability | Detail |
 |---|---|
-| **Repository scanner** | Recursive walk, default exclusions (`.git`, `target`, `build`, `out`, `node_modules`, `bin`, `obj`, …), language/type detection, SHA-256 hashing, parallel processing |
-| **Java parser** | Packages, classes, interfaces, enums, records, methods, constructors, fields, imports, inheritance/implements, method calls, instantiations, type references, cyclomatic complexity, exposure heuristics (annotations, `main`, visibility) — built on [JavaParser] |
-| **Configuration parser** | XML (Spring/JEE beans, XXE-safe), `.properties` and YAML → `CONFIGURATION` entities and `CONFIGURES` references to the classes they wire up; framework-wired classes are no longer flagged as dead code; likely secrets are masked and never stored |
-| **Build-file parser** | Maven `pom.xml` (XXE-safe), Gradle `build.gradle[.kts]`/`settings.gradle[.kts]` and GNAT `.gpr` → **modules** with coordinates, declared **dependencies** (linked module→module inside the repo; third-party coordinates stay honestly unresolved, never fabricated as nodes) and **declared main units**. Every file is assigned to the module that owns it, so `get_build_membership` answers and a **GNAT-declared main is an entry point, not dead code**. Read literally — nothing is resolved, fetched or executed |
-| **SQL / DDL parser** | `.sql`/`.ddl` → the schema the repository **declares**: `CREATE TABLE`/`VIEW` with columns, primary keys and foreign keys, plus `ALTER TABLE … FOREIGN KEY`. A table's stable id is its name, so a **declared table and the table a JPA entity maps to are one entity** — the mapping is confirmed against a real schema, while a table with no declaration is visibly inferred from naming. Foreign keys to undeclared tables stay honestly unresolved |
-| **Ada / SPARK parser** | `.ads`/`.adb`: packages & child packages, procedures, functions, types (record/enum/access/derived), tasks, protected types, exceptions, `with` dependencies, renamings, generic instantiations, **SPARK Pre/Post contracts**, cyclomatic complexity — deterministic line-and-scope scanner, no native toolchain required |
-| **Unified model** | Language-neutral entities & relationships with **deterministic, location-independent stable ids** (`java:type:…`, `ada:function:…(Integer)`), Ada spec/body merged into one identity, and source locations kept as evidence — see [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) |
+| **Repository scanner** | Recursive walk, default exclusions (`.git`, `target`, `build`, `out`, `node_modules`, `bin`, `obj`, ...), language/type detection, SHA-256 hashing, parallel processing |
+| **Java parser** | Packages, classes, interfaces, enums, records, methods, constructors, fields, imports, inheritance/implements, method calls, instantiations, type references, cyclomatic complexity, exposure heuristics (annotations, `main`, visibility) - built on [JavaParser] |
+| **Configuration parser** | XML (Spring/JEE beans, XXE-safe), `.properties` and YAML -> `CONFIGURATION` entities and `CONFIGURES` references to the classes they wire up; framework-wired classes are no longer flagged as dead code; likely secrets are masked and never stored |
+| **Build-file parser** | Maven `pom.xml` (XXE-safe), Gradle `build.gradle[.kts]`/`settings.gradle[.kts]` and GNAT `.gpr` -> **modules** with coordinates, declared **dependencies** (linked module->module inside the repo; third-party coordinates stay honestly unresolved, never fabricated as nodes) and **declared main units**. Every file is assigned to the module that owns it, so `get_build_membership` answers and a **GNAT-declared main is an entry point, not dead code**. Read literally - nothing is resolved, fetched or executed |
+| **SQL / DDL parser** | `.sql`/`.ddl` -> the schema the repository **declares**: `CREATE TABLE`/`VIEW` with columns, primary keys and foreign keys, plus `ALTER TABLE ... FOREIGN KEY`. A table's stable id is its name, so a **declared table and the table a JPA entity maps to are one entity** - the mapping is confirmed against a real schema, while a table with no declaration is visibly inferred from naming. Foreign keys to undeclared tables stay honestly unresolved |
+| **Ada / SPARK parser** | `.ads`/`.adb`: packages & child packages, procedures, functions, types (record/enum/access/derived), tasks, protected types, exceptions, `with` dependencies, renamings, generic instantiations, **SPARK Pre/Post contracts**, cyclomatic complexity - deterministic line-and-scope scanner, no native toolchain required |
+| **Unified model** | Language-neutral entities & relationships with **deterministic, location-independent stable ids** (`java:type:...`, `ada:function:...(Integer)`), Ada spec/body merged into one identity, and source locations kept as evidence - see [STABLE_IDENTIFIERS.md](STABLE_IDENTIFIERS.md) |
 | **Cross-reference linker** | Resolves symbolic call/type targets across files; conservative on ambiguity so dead-code is never overstated |
 | **Analysis** | Repository metrics (files, LOC, comments, language distribution, entity counts), complexity hotspots with risk bands, **dead-code detection with an evidence + confidence model**, package coupling & circular-dependency detection |
-| **Local index** | **File-backed H2 by default** (`~/.code-atlas/index/…`, never inside the analyzed repo) with scan versioning, atomic snapshot replacement (a failed scan never clobbers the last good one), and full relationship metadata — see [PERSISTENCE.md](PERSISTENCE.md) |
-| **Incremental scanning** | Per-file SHA-256 change detection plus **conservative reuse of unchanged parser results** (same content + same parser version), verified byte-identical to re-parsing — see [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) |
-| **Data lineage (Java + Ada)** | Deterministic tracing with a rule id, confidence and source evidence on every edge — Java: endpoint→controller→service→transformation→repository→**table**; Ada: **console input→procedure→transformation→package state→output**; ambiguity and unresolvable calls surface as explicit gaps; `atlas lineage` queries the persisted index up- or downstream — see [DATA_LINEAGE.md](DATA_LINEAGE.md) |
-| **Analysis coverage** | Every scan reports files analyzed/skipped/failed and reference resolution rate, and is labelled **PARTIAL** when coverage is incomplete — incomplete analysis is never presented as complete |
+| **Local index** | **File-backed H2 by default** (`~/.code-atlas/index/...`, never inside the analyzed repo) with scan versioning, atomic snapshot replacement (a failed scan never clobbers the last good one), and full relationship metadata - see [PERSISTENCE.md](PERSISTENCE.md) |
+| **Incremental scanning** | Per-file SHA-256 change detection plus **conservative reuse of unchanged parser results** (same content + same parser version), verified byte-identical to re-parsing - see [INCREMENTAL_ANALYSIS.md](INCREMENTAL_ANALYSIS.md) |
+| **Data lineage (Java + Ada)** | Deterministic tracing with a rule id, confidence and source evidence on every edge - Java: endpoint->controller->service->transformation->repository->**table**; Ada: **console input->procedure->transformation->package state->output**; ambiguity and unresolvable calls surface as explicit gaps; `atlas lineage` queries the persisted index up- or downstream - see [DATA_LINEAGE.md](DATA_LINEAGE.md) |
+| **Analysis coverage** | Every scan reports files analyzed/skipped/failed and reference resolution rate, and is labelled **PARTIAL** when coverage is incomplete - incomplete analysis is never presented as complete |
 | **Resolution status** | Relationships expose `DISCOVERED` / `RESOLVED` / `INFERRED` / `UNRESOLVED` so uncertainty is explicit (see [EVIDENCE_MODEL.md](EVIDENCE_MODEL.md)) |
 | **Reports** | Self-contained **HTML** dashboard (offline, no CDN/scripts), plus **JSON** and **CSV** |
-| **Graph exports** | `atlas graph --type <dependency\|call\|dead-code\|architecture> --format <dot\|svg>` — deterministic Graphviz DOT and self-contained SVG views over the persisted model (risk-coloured coupling, call graph, active-vs-dead, role layers). Colour-vision-deficiency safe by default: an Okabe-Ito palette verified against simulated protanopia, deuteranopia and tritanopia in the build, with dead and high-risk nodes also marked by border treatment so the graphs read in greyscale ([limits](KNOWN_LIMITATIONS.md#graph-colour-and-colour-vision-deficiency)) |
-| **Agent tool API** | `atlas tool <operation>` / `AtlasToolApi`: a controlled, **database-level read-only** query boundary over the persisted index (callers, dependents, members, lineage, impact, dead code, complexity, build membership, configuration references, summary) with stable ids and evidence on every result. **Every operation is implemented**; a question this repository has no facts for returns supported-but-empty *with the reason*, never a silent empty list — see [AGENTS.md](AGENTS.md) |
-| **Deterministic agents** | `atlas orient` (where do I start / what's central / what couldn't be analyzed), `atlas summarize <id>` (method/component summaries) and `atlas investigate <id>` (where data originates, what transforms it, where it's stored, who consumes it, what's unresolved — with the numbered confirmed path) — **templates over the tool API, no LLM**, confirmed facts separated from labelled inferences, every statement citing stable ids and file:line evidence — see [AGENTS.md](AGENTS.md) |
-| **Guided onboarding** | `atlas onboard <repo>` — one command runs a twelve-stage, deterministic investigation and writes an evidence-backed onboarding package (JSON + self-contained HTML): scan health, inventory, **Java & Ada entry points**, architecture orientation, **Java↔Ada boundary discovery** (JNI/native, process, message, shared-data — never name-similarity alone), representative lineage paths, central components, risks & gaps, a suggested reading order, and grounded questions for subject-matter experts. Read-only; reuses the existing agents; no AI — see [ONBOARDING.md](ONBOARDING.md) |
-| **Explorer UI** | `atlas serve` — a local **read-only** explorer: type in the search box, open any entity, and click through its callers, dependencies, build module and data lineage. Light/dark/auto **theme switcher**, live list filtering and `/` to focus search. Bound to **loopback only**, `GET`-only, single-user (no login, because there is no boundary to authenticate across). The CSS and script are **inline — nothing is fetched from any host**, so it runs fully offline; the script is **progressive enhancement**, so everything works with scripting disabled, and it is authorised by a per-response CSP **nonce** rather than `unsafe-inline` |
-| **CLI** | `atlas scan <repo>` — single runnable jar, no install |
+| **Graph exports** | `atlas graph --type <dependency\|call\|dead-code\|architecture> --format <dot\|svg>` - deterministic Graphviz DOT and self-contained SVG views over the persisted model (risk-coloured coupling, call graph, active-vs-dead, role layers). Colour-vision-deficiency safe by default: an Okabe-Ito palette verified against simulated protanopia, deuteranopia and tritanopia in the build, with dead and high-risk nodes also marked by border treatment so the graphs read in greyscale ([limits](KNOWN_LIMITATIONS.md#graph-colour-and-colour-vision-deficiency)) |
+| **Agent tool API** | `atlas tool <operation>` / `AtlasToolApi`: a controlled, **database-level read-only** query boundary over the persisted index (callers, dependents, members, lineage, impact, dead code, complexity, build membership, configuration references, summary) with stable ids and evidence on every result. **Every operation is implemented**; a question this repository has no facts for returns supported-but-empty *with the reason*, never a silent empty list - see [AGENTS.md](AGENTS.md) |
+| **Deterministic agents** | `atlas orient` (where do I start / what's central / what couldn't be analyzed), `atlas summarize <id>` (method/component summaries) and `atlas investigate <id>` (where data originates, what transforms it, where it's stored, who consumes it, what's unresolved - with the numbered confirmed path) - **templates over the tool API, no LLM**, confirmed facts separated from labelled inferences, every statement citing stable ids and file:line evidence - see [AGENTS.md](AGENTS.md) |
+| **Guided onboarding** | `atlas onboard <repo>` - one command runs a twelve-stage, deterministic investigation and writes an evidence-backed onboarding package (JSON + self-contained HTML): scan health, inventory, **Java & Ada entry points**, architecture orientation, **Java<->Ada boundary discovery** (JNI/native, process, message, shared-data - never name-similarity alone), representative lineage paths, central components, risks & gaps, a suggested reading order, and grounded questions for subject-matter experts. Read-only; reuses the existing agents; no AI - see [ONBOARDING.md](ONBOARDING.md) |
+| **Explorer UI** | `atlas serve` - a local **read-only** explorer: type in the search box, open any entity, and click through its callers, dependencies, build module and data lineage. Light/dark/auto **theme switcher**, live list filtering and `/` to focus search. Bound to **loopback only**, `GET`-only, single-user (no login, because there is no boundary to authenticate across). The CSS and script are **inline - nothing is fetched from any host**, so it runs fully offline; the script is **progressive enhancement**, so everything works with scripting disabled, and it is authorised by a per-response CSP **nonce** rather than `unsafe-inline` |
+| **CLI** | `atlas scan <repo>` - single runnable jar, no install |
 
 ### Dead-code philosophy
 
 Findings are **probable, never absolute**. Each candidate lists the evidence
 that produced it and a confidence score (capped below 100%), and always
-recommends review before removal — matching the spec's requirement to never make
+recommends review before removal - matching the spec's requirement to never make
 absolute claims.
 
 ---
@@ -230,9 +232,9 @@ tables, Ada package state or console input, see
 ## Architecture
 
 ```
-Repository → Scanner → Parser framework (plugins) → Unified model
-          → Linker → Local index (H2)
-          → Analysis engine → Reports        (→ optional local AI layer)
+Repository -> Scanner -> Parser framework (plugins) -> Unified model
+          -> Linker -> Local index (H2)
+          -> Analysis engine -> Reports        (-> optional local AI layer)
 ```
 
 ### Module map
@@ -240,7 +242,7 @@ Repository → Scanner → Parser framework (plugins) → Unified model
 | Module | Responsibility |
 |---|---|
 | `atlas-model` | Language-neutral entities, relationships, source locations (zero dependencies) |
-| `atlas-parser-api` | `RepositoryParser` SPI, `ParseRequest`/`ParseResult` — the plugin contract |
+| `atlas-parser-api` | `RepositoryParser` SPI, `ParseRequest`/`ParseResult` - the plugin contract |
 | `atlas-scanner` | Recursive scan, language detection, hashing, parallel walk |
 | `atlas-parser-java` | Java extraction (JavaParser) |
 | `atlas-parser-ada` | Ada / SPARK extraction |
@@ -262,7 +264,7 @@ Repository → Scanner → Parser framework (plugins) → Unified model
 
 Parsers are discovered at runtime via `java.util.ServiceLoader`. A new language
 or proprietary format is added by implementing `RepositoryParser` and declaring
-it in `META-INF/services/com.codeatlas.parser.api.RepositoryParser` — **no core
+it in `META-INF/services/com.codeatlas.parser.api.RepositoryParser` - **no core
 changes, no rebuild of the platform.**
 
 ---
@@ -270,12 +272,12 @@ changes, no rebuild of the platform.**
 ## Roadmap (per the platform spec)
 
 Everything in the [What works today](#what-works-today) table is implemented. What
-remains — all of it drops into the existing, language-neutral core without changing it:
+remains - all of it drops into the existing, language-neutral core without changing it:
 
 - **Parsers:** JSON configuration, custom proprietary formats (`.workflow`, `.mapping`,
-  `.rules`, …), and further languages (C/C++, Python, COBOL, Fortran). SQL/DDL schema
+  `.rules`, ...), and further languages (C/C++, Python, COBOL, Fortran). SQL/DDL schema
   and literal in-code SQL (JDBC / `@Query`) have both landed; what remains on the data
-  side is **Ada database bindings** — the last piece before a table shared by Java and
+  side is **Ada database bindings** - the last piece before a table shared by Java and
   Ada could register as a genuine cross-language boundary.
 - **`atlas-ui`:** the read-only explorer has landed (`atlas serve`). Still open: richer
   visual navigation (an interactive graph viewer rather than static SVG).

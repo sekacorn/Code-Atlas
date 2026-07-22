@@ -38,7 +38,7 @@ public final class SummarizeCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         Path index = indexPath != null ? indexPath : IndexLocations.defaultIndexFor(repository);
-        if (indexPath == null && !Files.exists(index.getParent() != null ? index.getParent() : index)) {
+        if (indexPath == null && !IndexLocations.indexDirectoryExists(index)) {
             System.err.println("No index found for " + repository.toAbsolutePath()
                     + " — run 'atlas scan " + repository + "' first.");
             return 4;

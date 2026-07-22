@@ -16,6 +16,11 @@ import java.util.List;
 public record GraphModel(String title, List<Node> nodes, List<Edge> edges,
                          boolean truncated, String note) {
 
+    public GraphModel {
+        nodes = List.copyOf(nodes);
+        edges = List.copyOf(edges);
+    }
+
     /** A node's visual category, mapped to colour by the renderers. */
     public enum Category {
         DEFAULT, RISK_HIGH, RISK_MEDIUM, RISK_LOW,
