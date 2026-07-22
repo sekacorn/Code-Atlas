@@ -132,6 +132,11 @@ atlas investigate ada:variable:Mission_Data.Current_Route --repo ...
 
 All are deterministic: identical index content yields byte-identical output.
 
+## Related UI status
+
+- **atlas-ui:** the read-only explorer has landed (`atlas serve`), including an
+  interactive graph viewer for pan/zoom/reset navigation over generated graph SVGs.
+
 ### Repository Onboarding Coordinator - `atlas onboard <repository>`
 
 A guided, twelve-stage workflow (`atlas-onboarding`) that **orchestrates the agents

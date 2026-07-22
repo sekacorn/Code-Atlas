@@ -305,7 +305,12 @@ final class Pages {
                 + Html.link("/graph?type=call", "call") + " · "
                 + Html.link("/graph?type=dead-code", "dead-code") + " · "
                 + Html.link("/graph?type=architecture", "architecture") + "</p>"
-                + "<div class=\"card zoomable\">" + svg + "</div>";
+                + "<div class=\"graph-shell\" data-graph-viewer>"
+                + "<div class=\"graph-toolbar\" aria-label=\"Graph controls\">"
+                + "<button type=\"button\" data-graph-action=\"zoom-in\" title=\"Zoom in\" aria-label=\"Zoom in\">+</button>"
+                + "<button type=\"button\" data-graph-action=\"zoom-out\" title=\"Zoom out\" aria-label=\"Zoom out\">-</button>"
+                + "<button type=\"button\" data-graph-action=\"reset\" title=\"Reset view\">Reset</button>"
+                + "</div><div class=\"graph-stage\" tabindex=\"0\">" + svg + "</div></div>";
         return page("Graph", body, view);
     }
 

@@ -128,6 +128,20 @@ class ExplorerServerTest {
     }
 
     @Test
+    void graphPageProvidesInteractiveViewerControls() throws Exception {
+        HttpResponse<String> r = get("/graph?type=architecture");
+        assertEquals(200, r.statusCode());
+        String body = r.body();
+        assertTrue(body.contains("data-graph-viewer"), "graph page has a viewer container");
+        assertTrue(body.contains("data-graph-action=\"zoom-in\""), "zoom-in control is rendered");
+        assertTrue(body.contains("data-graph-action=\"zoom-out\""), "zoom-out control is rendered");
+        assertTrue(body.contains("data-graph-action=\"reset\""), "reset control is rendered");
+        assertTrue(body.contains("stage.addEventListener('wheel'"), "mouse wheel zoom is wired");
+        assertTrue(body.contains("stage.addEventListener('pointerdown'"), "drag panning is wired");
+        assertTrue(body.contains("viewBox"), "the viewer changes the SVG viewport");
+    }
+
+    @Test
     void unknownEntityAndUnknownPageAreHandledNotCrashed() throws Exception {
         HttpResponse<String> missing = get("/entity?id=java:type:does.not.Exist");
         assertEquals(200, missing.statusCode());

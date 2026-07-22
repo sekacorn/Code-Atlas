@@ -85,6 +85,8 @@ be falsifiable - every claim here is checkable against the code or the test suit
 - **Explorer UI** (`atlas-ui`): `atlas serve` starts a local read-only explorer on
   loopback - search the model, open an entity, and click through callers, callees,
   dependencies, members, build module, configuration references and data lineage.
+  Graph pages expose dependency, call, dead-code and architecture SVGs through an
+  interactive pan/zoom/reset viewer.
   Built on the read-only tool API and the JDK's built-in HTTP server (no new
   dependency). Server-rendered HTML with a light/dark/auto theme (remembered in a
   cookie and applied server-side), live list filtering and a "/" search shortcut. The
@@ -172,7 +174,8 @@ Linker resolves cross-refs -> persist to H2 -> AnalysisEngine -> assemble Report
 - **UI:** a local read-only explorer (`atlas serve`, `atlas-ui`) plus static HTML
   reports. Server-rendered, loopback-only, GET-only - it renders the index and can
   change nothing. Inline CSS/JS only (nothing from any host); the script is
-  progressive enhancement. No interactive graph viewer yet (graphs are static SVG).
+  progressive enhancement, including pan/zoom/reset graph navigation over the
+  generated SVGs.
 - **AI / agents:** the Repository Orientation Agent and entity summaries run in
   deterministic mode over the read-only tool API (`atlas-agents`, see AGENTS.md).
   No AI anywhere; local-AI mode remains future and optional.
@@ -247,4 +250,4 @@ Linker resolves cross-refs -> persist to H2 -> AnalysisEngine -> assemble Report
 8. **Data-Lineage Investigator Agent** (`atlas investigate`). _Done - every
    numbered addendum milestone (1-10) is now complete._
 9. Next (beyond the addendum plan): richer dynamic-language and runtime-flow
-   coverage, interactive graph navigation, optional local-AI mode, AgentForge adapter.
+   coverage, optional local-AI mode, AgentForge adapter.

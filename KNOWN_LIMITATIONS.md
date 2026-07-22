@@ -161,8 +161,8 @@ What is **not**:
   advice is heuristic - all labelled as such in the output.
 - Graph **SVG** export uses a simple deterministic layered layout, capped at 200
   nodes; for large or dense graphs, export **DOT** and render with Graphviz for
-  better routing. There is no interactive graph viewer (CLI + static HTML/SVG by
-  design).
+  better routing. The explorer can pan, zoom and reset these SVGs, but Code Atlas
+  is still not a graph-layout engine.
 - The explorer (`atlas serve`) is a **read-only** view: it searches the model and
   navigates entities, lineage and build membership, but it cannot edit, re-scan or
   change anything, and it renders only what the persisted index already holds.
@@ -171,8 +171,9 @@ What is **not**:
   (theme switching, live list filtering, a "/" shortcut); search, navigation and the
   theme all work with scripting disabled. It is authorised by a per-response CSP
   nonce rather than `unsafe-inline`.
-- Graphs are still the **static SVG** the CLI exports - there is no pan/zoom or
-  interactive graph viewer.
+- Graphs are still rendered from deterministic **static SVG** exports. In
+  `atlas serve`, the explorer adds pan/zoom/reset navigation over that SVG; the
+  CLI export itself remains script-free and non-interactive.
 - The explorer is **single-user and unauthenticated by design**: it binds to loopback
   only and serves a read-only view, so there is no boundary to authenticate across.
   It is a local tool and is **not** hardened for network exposure - do not put it

@@ -6,7 +6,7 @@
 
     <groupId>com.codeatlas</groupId>
     <artifactId>code-atlas</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
     <packaging>pom</packaging>
 
     <name>Code Atlas</name>
@@ -54,7 +54,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <project.build.outputTimestamp>2026-07-21T00:00:00Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2026-07-22T09:10:57Z</project.build.outputTimestamp>
 
         <!-- Dependency versions (single source of truth) -->
         <javaparser.version>3.26.4</javaparser.version>

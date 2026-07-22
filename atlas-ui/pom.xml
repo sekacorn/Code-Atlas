@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.codeatlas</groupId>
         <artifactId>code-atlas</artifactId>
-        <version>0.3.0</version>
+        <version>0.3.1</version>
     </parent>
 
     <artifactId>atlas-ui</artifactId>
@@ -15,9 +15,10 @@
     <description>
         A local, loopback-only, read-only explorer: search the model, open an entity,
         and navigate its callers, dependencies and data lineage by clicking through
-        the graph. Server-rendered HTML with a light/dark/auto theme; the CSS and
-        script are inline and nothing loads from another host, so it runs on an
-        offline or locked-down workstation, and the script is progressive enhancement
+        relationships, with pan/zoom graph inspection. Server-rendered HTML with a
+        light/dark/auto theme; the CSS and script are inline and nothing loads from
+        another host, so it runs on an offline or locked-down workstation, and the
+        script is progressive enhancement
         only. Built on the read-only tool API and the JDK's built-in HTTP server —
         no new dependencies.
     </description>
