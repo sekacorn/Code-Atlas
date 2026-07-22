@@ -61,7 +61,7 @@
         <h2.version>2.3.232</h2.version>
         <picocli.version>4.7.6</picocli.version>
         <slf4j.version>2.0.16</slf4j.version>
-        <junit.version>5.11.4</junit.version>
+        <junit.version>6.1.2</junit.version>
         <jazzer.version>0.30.0</jazzer.version>
         <cyclonedx.version>2.9.2</cyclonedx.version>
         <enforcer.version>3.6.3</enforcer.version>
