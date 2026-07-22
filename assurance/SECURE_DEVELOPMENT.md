@@ -33,7 +33,6 @@ The repository workflows provide:
 - CycloneDX SBOM generation
 - Reproducible-build verification
 - Release provenance and SBOM attestations
-- Weekly automated update proposals for Maven dependencies and hosted actions
 - Explicit ownership for release, security, legal, and assurance controls
 
 Workflow actions are pinned to immutable commit hashes. Version updates should be
