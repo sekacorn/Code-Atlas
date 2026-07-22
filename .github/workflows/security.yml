@@ -37,7 +37,7 @@ jobs:
       - name: Compile
         run: mvn -B -ntp clean compile
       - name: Analyze
-        uses: github/codeql-action/analyze@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4.31.10
+        uses: github/codeql-action/analyze@e0647621c2984b5ed2f768cb892365bf2a616ad1 # v4.37.2
 
   dependency-review:
     name: Dependency review
