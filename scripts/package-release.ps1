@@ -58,6 +58,20 @@ function Write-Checksum([string]$Path) {
     [System.IO.File]::WriteAllText("$Path.sha256", "$line`n", [System.Text.ASCIIEncoding]::new())
 }
 
+function Get-DeterministicUuidUrn([string]$Value) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Value)
+        $hex = ([BitConverter]::ToString($sha.ComputeHash($bytes)) -replace "-", "").ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
+    $uuid = $hex.Substring(0, 8) + "-" + $hex.Substring(8, 4) + "-5" +
+            $hex.Substring(13, 3) + "-8" + $hex.Substring(17, 3) + "-" +
+            $hex.Substring(20, 12)
+    return "urn:uuid:$uuid"
+}
+
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = Get-ProjectVersion
 }
@@ -92,6 +106,16 @@ New-Item -ItemType Directory -Force -Path $DistPath | Out-Null
 
 $ReleaseSbom = Join-Path $DistPath "code-atlas-$Version.cdx.json"
 Copy-Item -LiteralPath $SbomPath -Destination $ReleaseSbom
+$Sbom = Get-Content -LiteralPath $ReleaseSbom -Raw | ConvertFrom-Json
+if ($Sbom.bomFormat -ne "CycloneDX" -or [string]::IsNullOrWhiteSpace($Sbom.specVersion)) {
+    throw "Generated SBOM is not valid CycloneDX JSON"
+}
+if ([string]::IsNullOrWhiteSpace($Sbom.serialNumber)) {
+    $Sbom | Add-Member -NotePropertyName serialNumber -NotePropertyValue `
+            (Get-DeterministicUuidUrn "Code Atlas|$Version|$SourceCommit")
+}
+[System.IO.File]::WriteAllText($ReleaseSbom,
+        ($Sbom | ConvertTo-Json -Depth 100) + "`n", $Utf8NoBom)
 Write-Checksum $ReleaseSbom
 
 $PackageRootName = "code-atlas-$Version"

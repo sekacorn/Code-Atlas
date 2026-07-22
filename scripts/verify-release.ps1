@@ -13,6 +13,22 @@ if (-not (Test-Path $ManifestPath)) {
 }
 $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
 
+$SbomArtifacts = @($Manifest.artifacts | Where-Object { $_.file -match '\.cdx\.json$' })
+if ($SbomArtifacts.Count -ne 1) {
+    throw "Release manifest must contain exactly one CycloneDX SBOM"
+}
+$SbomPath = Join-Path $DistPath $SbomArtifacts[0].file
+$Sbom = Get-Content -LiteralPath $SbomPath -Raw | ConvertFrom-Json
+if ($Sbom.bomFormat -ne "CycloneDX" -or $Sbom.specVersion -ne "1.6") {
+    throw "Release SBOM must be CycloneDX 1.6 JSON"
+}
+if ($Sbom.serialNumber -notmatch '^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
+    throw "Release SBOM is missing a valid deterministic serial number"
+}
+if ($Sbom.metadata.component.version -ne $Manifest.version) {
+    throw "Release SBOM component version does not match the manifest"
+}
+
 foreach ($artifact in $Manifest.artifacts) {
     $path = Join-Path $DistPath $artifact.file
     if (-not (Test-Path $path)) {
